@@ -4352,20 +4352,27 @@ let holdTimer = 0;
 let holdTrustAccum = 0;
 
 function tryHoldHamster() {
+  const name = window.hamsterName || 'them';
   const ai = hamAI.behavior;
-  const calmEnough = ai===B.IDLE||ai===B.APPROACH||ai===B.STAY_NEAR||ai===B.EAT||ai===B.DRINK;
-  const chance = holdSuccessChance(hamState.trust) * (calmEnough ? 1.0 : 0.4);
+  const calmEnough = ai===B.IDLE||ai===B.APPROACH||ai===B.STAY_NEAR||ai===B.EAT||ai===B.DRINK||ai===B.GLASS_RUB;
+  const chance = holdSuccessChance(hamState.trust) * (calmEnough ? 1.0 : 0.5);
   if (Math.random() < chance) {
     doHoldHamster();
   } else {
-    // Hamster refuses — flinch and flee
+    // Hamster refuses — flinch and show immediate feedback in interact prompt
     startBehavior(B.HIDE);
     const msg = hamState.trust < 26
-      ? `${hamName} darts away...`
+      ? `${name} darts away...`
       : hamState.trust < 51
-        ? `${hamName} isn't sure yet ♡`
-        : `${hamName} wriggles free ♡`;
-    setCaption(msg, 600);
+        ? `${name} isn't sure yet ♡`
+        : `${name} wriggles free ♡`;
+    interactPrompt.textContent = msg;
+    interactPrompt.classList.add('visible');
+    setTimeout(() => {
+      interactPrompt.textContent = getCareItemsUsedToday().includes('hold')
+        ? `${name}'s home  ·  [T] talk to them`
+        : `[E] gently hold ${name}  ·  [T] talk to them`;
+    }, 1800);
   }
 }
 
