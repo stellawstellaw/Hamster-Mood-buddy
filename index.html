@@ -140,6 +140,29 @@
       color: rgba(220,195,155,0.88); letter-spacing: 0.07em; white-space: nowrap;
       transform: translateX(-50%); display: none;
     }
+    /* ── Hold timer bar ─────────────────────────────── */
+    #hold-bar {
+      position: fixed; top: 1.4rem; left: 50%;
+      transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
+      pointer-events: none; z-index: 20;
+      opacity: 0; transition: opacity 0.4s;
+    }
+    #hold-bar.visible { opacity: 1; }
+    #hold-bar-label {
+      color: rgba(235,210,170,0.70); font-size: 0.65rem; font-weight: 300;
+      letter-spacing: 0.14em; text-transform: uppercase;
+    }
+    #hold-bar-track {
+      width: 120px; height: 3px; border-radius: 2px;
+      background: rgba(255,255,255,0.08);
+    }
+    #hold-bar-fill {
+      height: 100%; border-radius: 2px; width: 100%;
+      background: linear-gradient(90deg, rgba(240,200,140,0.55), rgba(240,200,140,0.85));
+      transition: width 0.1s linear;
+    }
+
     /* ── Movement hint ───────────────────────────────── */
     #move-hint {
       position: fixed; bottom: 1.8rem; left: 50%;
@@ -532,6 +555,157 @@
       display: flex; justify-content: center;
     }
 
+    /* ── Tutorial intro ─────────────────────────────── */
+    #tutorial-overlay {
+      position: fixed; inset: 0;
+      background: rgba(6,4,2,0.88); backdrop-filter: blur(18px);
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 220; padding: 2rem;
+    }
+    #tutorial-overlay.visible { display: flex; }
+    #tutorial-panel {
+      background: rgba(14,9,5,0.97);
+      border: 1px solid rgba(200,160,80,0.14);
+      border-radius: 10px;
+      max-width: 480px; width: 100%;
+      padding: 2rem 2.2rem 1.8rem;
+    }
+    #tutorial-panel h2 {
+      color: rgba(240,215,175,0.82); font-size: 0.82rem; font-weight: 400;
+      letter-spacing: 0.18em; text-transform: uppercase; margin: 0 0 1.6rem;
+    }
+    .tut-step {
+      display: none; flex-direction: column; gap: 0.9rem;
+    }
+    .tut-step.active { display: flex; }
+    .tut-step-title {
+      color: rgba(220,195,145,0.90); font-size: 0.78rem; font-weight: 400;
+    }
+    .tut-step-body {
+      color: rgba(190,170,140,0.70); font-size: 0.70rem; line-height: 1.7;
+    }
+    .tut-step-body em { color: rgba(220,195,145,0.88); font-style: normal; }
+    .tut-keys {
+      display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.3rem;
+    }
+    .tut-key {
+      background: rgba(200,160,80,0.09); border: 1px solid rgba(200,160,80,0.22);
+      border-radius: 4px; padding: 0.22rem 0.55rem;
+      color: rgba(220,195,145,0.80); font-size: 0.65rem; font-family: inherit;
+    }
+    .tut-key span { opacity: 0.55; margin-left: 0.4rem; }
+    .tut-dots {
+      display: flex; gap: 0.4rem; margin: 1.4rem 0 0;
+    }
+    .tut-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: rgba(200,160,80,0.20); transition: background 0.3s;
+    }
+    .tut-dot.active { background: rgba(200,160,80,0.65); }
+    .tut-nav {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 1.4rem;
+    }
+    #tut-back { opacity: 0; pointer-events: none; }
+    #tut-back.show { opacity: 1; pointer-events: auto; }
+
+    /* ── Guide overlay ──────────────────────────────── */
+    #guide-overlay {
+      position: fixed; inset: 0;
+      background: rgba(6,4,2,0.90); backdrop-filter: blur(22px);
+      display: none; align-items: center; justify-content: center;
+      z-index: 215; padding: 1.2rem;
+    }
+    #guide-overlay.visible { display: flex; }
+    #guide-panel {
+      background: rgba(16,10,6,0.96);
+      border: 1px solid rgba(200,160,80,0.16);
+      border-radius: 24px;
+      width: min(520px, 96vw); max-height: 88vh;
+      display: flex; flex-direction: column;
+      box-shadow: 0 12px 60px rgba(0,0,0,0.80);
+      animation: fadeUp 0.28s ease;
+      overflow: hidden;
+    }
+    #guide-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.4rem 1.8rem 0.9rem;
+      border-bottom: 1px solid rgba(200,160,80,0.10);
+      flex-shrink: 0;
+    }
+    #guide-title {
+      color: rgba(240,215,175,0.80); font-size: 0.75rem; font-weight: 400;
+      letter-spacing: 0.24em; text-transform: uppercase;
+    }
+    #guide-close {
+      background: none; border: 1px solid rgba(200,160,80,0.22);
+      border-radius: 50%; width: 28px; height: 28px;
+      color: rgba(200,170,120,0.55); font-size: 0.85rem; line-height: 1;
+      cursor: pointer; transition: all 0.18s; font-family: inherit;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #guide-close:hover { background: rgba(200,160,80,0.12); color: #f0dfc0; border-color: rgba(200,160,80,0.50); }
+    #guide-body {
+      overflow-y: auto; padding: 1.2rem 1.8rem 1.6rem;
+      display: flex; flex-direction: column; gap: 1.4rem;
+      scrollbar-width: thin; scrollbar-color: rgba(200,160,80,0.18) transparent;
+    }
+    .guide-section-title {
+      color: rgba(200,165,90,0.60); font-size: 0.58rem; font-weight: 400;
+      letter-spacing: 0.26em; text-transform: uppercase;
+      margin-bottom: 0.6rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid rgba(200,160,80,0.08);
+    }
+    .guide-row {
+      display: flex; gap: 0.9rem; align-items: baseline;
+      padding: 0.18rem 0;
+    }
+    .guide-key {
+      background: rgba(200,160,80,0.10); border: 1px solid rgba(200,160,80,0.22);
+      border-radius: 6px; padding: 0.12rem 0.55rem;
+      color: rgba(230,205,160,0.80); font-size: 0.64rem; font-weight: 400;
+      letter-spacing: 0.06em; white-space: nowrap; flex-shrink: 0;
+    }
+    .guide-desc {
+      color: rgba(185,165,135,0.68); font-size: 0.71rem; font-weight: 300;
+      letter-spacing: 0.03em; line-height: 1.6;
+    }
+    .guide-desc em {
+      color: rgba(215,190,145,0.80); font-style: normal;
+    }
+    .guide-item-row {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 0.5rem 1.2rem;
+    }
+    .guide-item {
+      display: flex; flex-direction: column; gap: 0.10rem;
+    }
+    .guide-item-name {
+      color: rgba(220,195,150,0.78); font-size: 0.70rem; font-weight: 400;
+      letter-spacing: 0.04em;
+    }
+    .guide-item-note {
+      color: rgba(160,140,110,0.52); font-size: 0.62rem; font-weight: 300;
+      letter-spacing: 0.03em;
+    }
+    .guide-stage {
+      display: flex; gap: 0.8rem; align-items: flex-start; padding: 0.22rem 0;
+    }
+    .guide-stage-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 0.30rem;
+    }
+    .guide-stage-text { display: flex; flex-direction: column; gap: 0.10rem; }
+    .guide-stage-name { color: rgba(215,190,148,0.75); font-size: 0.70rem; font-weight: 400; letter-spacing: 0.04em; }
+    .guide-stage-note { color: rgba(155,135,105,0.52); font-size: 0.62rem; font-weight: 300; letter-spacing: 0.02em; }
+    .guide-tip {
+      background: rgba(200,160,80,0.06); border: 1px solid rgba(200,160,80,0.10);
+      border-radius: 12px; padding: 0.65rem 1.0rem;
+      color: rgba(170,148,112,0.65); font-size: 0.67rem; font-weight: 300;
+      letter-spacing: 0.03em; line-height: 1.65; font-style: italic;
+    }
+
     /* ── Secret panel ────────────────────────────────── */
     #secret-overlay {
       position: fixed; inset: 0;
@@ -631,6 +805,7 @@
 <div id="crosshair"></div>
 <div id="interact-prompt"></div>
 <div id="held-item-bar"><span class="hib-dot"></span><span id="hib-label"></span></div>
+<div id="hold-bar"><div id="hold-bar-label">holding</div><div id="hold-bar-track"><div id="hold-bar-fill"></div></div></div>
 <div id="points-display"><span class="pts-gem"></span><span id="pts-count">0</span> pts</div>
 <div id="move-hint">W A S D to move &nbsp;·&nbsp; mouse to look &nbsp;·&nbsp; ESC to pause</div>
 
@@ -698,7 +873,158 @@
   <div class="pause-title">paused</div>
   <button class="soft-btn" onclick="resumeGame()">continue</button>
   <button class="soft-btn" onclick="openHistoryOverlay(true)">mood journal</button>
+  <button class="soft-btn" onclick="openGuide()">guide</button>
+  <button class="soft-btn" onclick="openTutorial()" style="opacity:0.65;font-size:0.72rem;padding:0.45rem 1.6rem">how to play</button>
   <button class="soft-btn" onclick="showProfileScreen()" style="opacity:0.55;font-size:0.72rem;padding:0.45rem 1.6rem">switch profile</button>
+</div>
+
+<!-- Tutorial intro overlay -->
+<div id="tutorial-overlay">
+  <div id="tutorial-panel">
+    <h2>welcome ♡</h2>
+
+    <div class="tut-step active" data-step="0">
+      <div class="tut-step-title">your room, your hamster</div>
+      <div class="tut-step-body">You live in this little room. Your hamster lives in the terrarium on the right. They don't know you yet — but they will.<br><br>Move around with <em>WASD</em> and look with your <em>mouse</em>. Click to lock your cursor into the game.</div>
+    </div>
+
+    <div class="tut-step" data-step="1">
+      <div class="tut-step-title">press [E] to interact</div>
+      <div class="tut-step-body">Walk up to the cage and press <em>[E]</em> to try gently holding your hamster. They might dart away at first — that's okay. The more you care for them, the more they'll trust you.<br><br>Press <em>[T]</em> anytime to write in your mood journal. Your hamster pays attention to how you're feeling.</div>
+      <div class="tut-keys">
+        <div class="tut-key">E<span>hold / interact</span></div>
+        <div class="tut-key">T<span>mood journal</span></div>
+      </div>
+    </div>
+
+    <div class="tut-step" data-step="2">
+      <div class="tut-step-title">care items</div>
+      <div class="tut-step-body">There are items scattered around the room — a treat jar, bedding bag, cleaning cloth, music box, and sketchbook. Pick one up with <em>[E]</em>, carry it to the cage, and press <em>[E]</em> again to use it.<br><br>Each care item gives your hamster a little trust boost. They reset every day.</div>
+      <div class="tut-keys">
+        <div class="tut-key">Q<span>whistle near cage (+1 trust)</span></div>
+      </div>
+    </div>
+
+    <div class="tut-step" data-step="3">
+      <div class="tut-step-title">the daily shop</div>
+      <div class="tut-step-body">Three pedestals near the front of the room hold accessories for the cage. Writing in your journal and caring for your hamster earns points — spend them to permanently add items to the cage.<br><br>Your hamster will explore and interact with anything you add. Check back every day for new items.</div>
+    </div>
+
+    <div class="tut-step" data-step="4">
+      <div class="tut-step-title">take your time</div>
+      <div class="tut-step-body">Trust builds slowly. Your hamster notices everything — the care items you bring, the moods you share, whether you come close or give them space.<br><br>Press <em>ESC</em> to pause and access the guide anytime. Type <em>showme</em> to see hidden stats. There's no rush.</div>
+    </div>
+
+    <div class="tut-dots">
+      <div class="tut-dot active" data-dot="0"></div>
+      <div class="tut-dot" data-dot="1"></div>
+      <div class="tut-dot" data-dot="2"></div>
+      <div class="tut-dot" data-dot="3"></div>
+      <div class="tut-dot" data-dot="4"></div>
+    </div>
+    <div class="tut-nav">
+      <button class="soft-btn" id="tut-back" onclick="tutNav(-1)">← back</button>
+      <button class="soft-btn" id="tut-next" onclick="tutNav(1)">next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Guide overlay -->
+<div id="guide-overlay">
+  <div id="guide-panel">
+    <div id="guide-header">
+      <span id="guide-title">how to play</span>
+      <button id="guide-close" onclick="closeGuide()">✕</button>
+    </div>
+    <div id="guide-body">
+
+      <div>
+        <div class="guide-section-title">controls</div>
+        <div class="guide-row"><span class="guide-key">W A S D</span><span class="guide-desc">move around the room</span></div>
+        <div class="guide-row"><span class="guide-key">mouse</span><span class="guide-desc">look around</span></div>
+        <div class="guide-row"><span class="guide-key">E</span><span class="guide-desc">interact — pick up items, use items at cage, try holding your hamster, buy shop items</span></div>
+        <div class="guide-row"><span class="guide-key">T</span><span class="guide-desc">open mood journal — write about your day, earn shop points, affect how your hamster behaves</span></div>
+        <div class="guide-row"><span class="guide-key">Q</span><span class="guide-desc">whistle near the cage — once per day, your hamster perks up and comes closer  <em>(+1 trust)</em></span></div>
+        <div class="guide-row"><span class="guide-key">ESC</span><span class="guide-desc">pause / release mouse</span></div>
+        <div class="guide-row"><span class="guide-key">click</span><span class="guide-desc">lock mouse and enter the room</span></div>
+        <div class="guide-row"><span class="guide-key">type "showme"</span><span class="guide-desc">reveal the secret stats panel — trust score, hamster personality, your history together</span></div>
+      </div>
+
+      <div>
+        <div class="guide-section-title">mood journal</div>
+        <div class="guide-row"><span class="guide-desc">Walk up to the cage and press <em>[E]</em> to open the mood journal. Choose how you're feeling today and optionally write about it. Your hamster listens and responds — their behavior shifts based on your mood for the rest of the day.</span></div>
+        <div class="guide-row" style="margin-top:0.4rem"><span class="guide-desc">Each entry earns <em>+1 point</em> for the shop and builds <em>trust</em>. Writing more earns a little extra.</span></div>
+      </div>
+
+      <div>
+        <div class="guide-section-title">care items — pick up and bring to cage</div>
+        <div class="guide-item-row">
+          <div class="guide-item"><span class="guide-item-name">treat jar</span><span class="guide-item-note">near the cage · +3 trust</span></div>
+          <div class="guide-item"><span class="guide-item-name">bedding bag</span><span class="guide-item-note">left back wall · +2 trust</span></div>
+          <div class="guide-item"><span class="guide-item-name">cleaning cloth</span><span class="guide-item-note">cage front floor · +2 trust</span></div>
+          <div class="guide-item"><span class="guide-item-name">music box</span><span class="guide-item-note">left-center floor · +2 trust</span></div>
+          <div class="guide-item"><span class="guide-item-name">sketchbook</span><span class="guide-item-note">far left wall · +2 trust</span></div>
+        </div>
+        <div class="guide-desc" style="margin-top:0.55rem">Press <em>[E]</em> to pick up an item. Carry it to the cage and press <em>[E]</em> again to use it. Each item resets at midnight.</div>
+      </div>
+
+      <div>
+        <div class="guide-section-title">holding your hamster</div>
+        <div class="guide-desc">Walk up to the cage and press <em>[E]</em> to try gently holding your hamster. Whether they let you depends on how much they trust you — at first they'll dart away, but over time they'll come to you willingly. Your hamster appears in your hands for up to <em>10 seconds</em>. Trust trickles in the longer you hold. Press <em>[E]</em> to put them back early. Completing the full hold gives a small bonus.</div>
+        <div class="guide-desc" style="margin-top:0.4rem;opacity:0.6">Use <em>[T]</em> anytime to open the mood journal without attempting to hold.</div>
+      </div>
+
+      <div>
+        <div class="guide-section-title">daily shop</div>
+        <div class="guide-desc">Three cage accessories appear on pedestals near the front of the room. They rotate every day. Walk up to a pedestal to see the item and its price. Spend points to add it permanently to the cage — your hamster will explore and interact with it.</div>
+        <div class="guide-row" style="margin-top:0.4rem"><span class="guide-key">green glow</span><span class="guide-desc">2 pts</span></div>
+        <div class="guide-row"><span class="guide-key">gold glow</span><span class="guide-desc">3–4 pts</span></div>
+        <div class="guide-row"><span class="guide-key">orange glow</span><span class="guide-desc">5 pts</span></div>
+      </div>
+
+      <div>
+        <div class="guide-section-title">trust &amp; relationship stages</div>
+        <div class="guide-desc" style="margin-bottom:0.6rem">Trust grows through every interaction and builds over time. It's never shown directly — you'll notice it through how your hamster behaves.</div>
+        <div class="guide-stage">
+          <div class="guide-stage-dot" style="background:rgba(180,160,130,0.55)"></div>
+          <div class="guide-stage-text"><span class="guide-stage-name">0 – 25 · unfamiliar</span><span class="guide-stage-note">hides often, almost never approaches, watches from a distance</span></div>
+        </div>
+        <div class="guide-stage">
+          <div class="guide-stage-dot" style="background:rgba(160,190,140,0.60)"></div>
+          <div class="guide-stage-text"><span class="guide-stage-name">26 – 50 · curious</span><span class="guide-stage-note">starts observing you, presses against the glass, cautious approaches</span></div>
+        </div>
+        <div class="guide-stage">
+          <div class="guide-stage-dot" style="background:rgba(130,190,160,0.65)"></div>
+          <div class="guide-stage-text"><span class="guide-stage-name">51 – 75 · comfortable</span><span class="guide-stage-note">approaches voluntarily, shares space, settles near you</span></div>
+        </div>
+        <div class="guide-stage">
+          <div class="guide-stage-dot" style="background:rgba(120,200,160,0.75)"></div>
+          <div class="guide-stage-text"><span class="guide-stage-name">76 – 100 · trusting companion</span><span class="guide-stage-note">seeks you out, follows you, hides almost never, very calm</span></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="guide-section-title">how trust grows</div>
+        <div class="guide-item-row">
+          <div class="guide-item"><span class="guide-item-name">mood journal</span><span class="guide-item-note">+4 base, up to +7</span></div>
+          <div class="guide-item"><span class="guide-item-name">treat jar</span><span class="guide-item-note">+3 per day</span></div>
+          <div class="guide-item"><span class="guide-item-name">holding (base)</span><span class="guide-item-note">+3 on pickup</span></div>
+          <div class="guide-item"><span class="guide-item-name">holding (trickle)</span><span class="guide-item-note">+0.5 every 2.5s</span></div>
+          <div class="guide-item"><span class="guide-item-name">holding (complete)</span><span class="guide-item-note">+1 bonus at 10s</span></div>
+          <div class="guide-item"><span class="guide-item-name">music box</span><span class="guide-item-note">+2 per day</span></div>
+          <div class="guide-item"><span class="guide-item-name">sketchbook</span><span class="guide-item-note">+2 per day</span></div>
+          <div class="guide-item"><span class="guide-item-name">bedding / cloth</span><span class="guide-item-note">+2 per day each</span></div>
+          <div class="guide-item"><span class="guide-item-name">whistle [Q]</span><span class="guide-item-note">+1 per day</span></div>
+          <div class="guide-item"><span class="guide-item-name">time spent in room</span><span class="guide-item-note">+1 every 3 min</span></div>
+        </div>
+      </div>
+
+      <div class="guide-tip">
+        your hamster has a hidden personality — some are bolder, some more curious, some very social. you'll learn who they are just by spending time with them. type "showme" anytime to peek behind the curtain.
+      </div>
+
+    </div>
+  </div>
 </div>
 
 <!-- Mood check-in overlay -->
@@ -823,17 +1149,19 @@ document.addEventListener('keydown', e => {
     } else if (GAME_STATE === 'setup' && lookingAtSetupItem) {
       selectSetupItem(lookingAtSetupItem);
     } else if (GAME_STATE === 'playing') {
-      if (nearCareItem) {
+      if (holdMode) {
+        endHoldHamster(false);
+      } else if (nearCareItem) {
         pickupCareItem(nearCareItem);
       } else if (heldItem && lookingAtEnclosure) {
         useCareItem();
       } else if (!heldItem && lookingAtEnclosure) {
-        // Hold hamster if eligible, else open mood overlay
-        const ai = hamAI.behavior;
-        const calmEnough = ai===B.IDLE||ai===B.APPROACH||ai===B.STAY_NEAR||ai===B.EAT||ai===B.DRINK;
-        const canHold = hamState.trust >= HOLD_TRUST_REQ && calmEnough &&
-                        !getCareItemsUsedToday().includes('hold');
-        if (canHold) doHoldHamster(); else openMoodOverlay();
+        // Hold hamster (probability-based) or open mood overlay
+        if (!getCareItemsUsedToday().includes('hold')) {
+          tryHoldHamster();
+        } else {
+          openMoodOverlay();
+        }
       } else if (nearShopItem !== null) {
         buyShopItem(nearShopItem);
       }
@@ -842,6 +1170,10 @@ document.addEventListener('keydown', e => {
   // [Q] — whistle near cage, once per day
   if (e.code === 'KeyQ' && controls.isLocked && GAME_STATE === 'playing') {
     doWhistle();
+  }
+  // [T] — open mood journal / talk to hamster
+  if (e.code === 'KeyT' && controls.isLocked && GAME_STATE === 'playing' && !holdMode) {
+    openMoodOverlay();
   }
 });
 
@@ -892,6 +1224,58 @@ document.getElementById('ham-name-input').addEventListener('mousedown', e => {
 });
 window.startGame  = () => controls.lock();
 window.resumeGame = () => controls.lock();
+
+// ── Tutorial intro ────────────────────────────────────────
+let _tutStep = 0;
+const TUT_TOTAL = 5;
+
+window.openTutorial = function() {
+  _tutStep = 0;
+  _tutRender();
+  document.getElementById('tutorial-overlay').classList.add('visible');
+};
+window.closeTutorial = function() {
+  document.getElementById('tutorial-overlay').classList.remove('visible');
+  if (GAME_STATE === 'playing') controls.lock();
+};
+window.tutNav = function(dir) {
+  _tutStep = Math.max(0, Math.min(TUT_TOTAL - 1, _tutStep + dir));
+  _tutRender();
+  if (_tutStep === TUT_TOTAL - 1) {
+    document.getElementById('tut-next').textContent = 'start playing →';
+    document.getElementById('tut-next').onclick = () => closeTutorial();
+  } else {
+    document.getElementById('tut-next').textContent = 'next →';
+    document.getElementById('tut-next').onclick = () => tutNav(1);
+  }
+};
+function _tutRender() {
+  document.querySelectorAll('.tut-step').forEach(el => {
+    el.classList.toggle('active', +el.dataset.step === _tutStep);
+  });
+  document.querySelectorAll('.tut-dot').forEach(el => {
+    el.classList.toggle('active', +el.dataset.dot === _tutStep);
+  });
+  const back = document.getElementById('tut-back');
+  back.classList.toggle('show', _tutStep > 0);
+}
+
+function maybeShowTutorial() {
+  const key = 'flh_tutorial_seen';
+  if (!localStorage.getItem(key)) {
+    localStorage.setItem(key, '1');
+    openTutorial();
+  }
+}
+
+window.openGuide = function() {
+  document.getElementById('pause-menu').classList.remove('visible');
+  document.getElementById('guide-overlay').classList.add('visible');
+};
+window.closeGuide = function() {
+  document.getElementById('guide-overlay').classList.remove('visible');
+  if (GAME_STATE === 'playing') controls.lock();
+};
 
 // Furniture obstacle rectangles — populated as furniture is built below
 const OBSTACLES = [];
@@ -1648,7 +2032,7 @@ function scoreBehaviours() {
   const bias = getMoodBias(hamState.mood);
   const R = () => Math.random() * 8;
   const has = k => accMeshes[k] !== null;
-  return {
+  const s = {
     [B.IDLE]:      28 + T * -0.10 + (bias.idle      ?? 0) + R(),
     [B.EXPLORE]:   22 + T *  0.15 + (bias.explore   ?? 0) + R(),
     [B.HIDE]:      18 + T * -0.25 + (bias.hide      ?? 0) + R(),
@@ -1657,13 +2041,33 @@ function scoreBehaviours() {
     [B.INTERACT]:   8 + T *  0.10 + (bias.interact  ?? 0) + R(),
     [B.APPROACH]:   2 + T *  0.50 + (bias.approach  ?? 0) + R(),
     [B.STAY_NEAR]:  2 + T *  0.40 + (bias.stay_near ?? 0) + R(),
-    // Accessory interactions — zero weight if not installed
     [B.USE_WHEEL]: has('wheel')    ? 14 + T *  0.12 + (bias.use_wheel ?? 0) + R() : 0,
     [B.EAT]:       has('food')     ? 13 + T *  0.08 + (bias.eat       ?? 0) + R() : 0,
     [B.DRINK]:     has('water')    ? 11 + T *  0.06 + (bias.drink     ?? 0) + R() : 0,
     [B.SAND_BATH]: has('sandbath') ?  9 + T *  0.10 + (bias.sand_bath ?? 0) + R() : 0,
     [B.CLIMB]:     has('branch')   ?  8 + T *  0.10 + (bias.climb     ?? 0) + R() : 0,
   };
+
+  // Trust stage modifiers — make stage transitions feel distinct
+  if (T < 26) {
+    // Stage 1 — Unfamiliar: almost never approaches, hides a lot
+    s[B.APPROACH]  = Math.min(s[B.APPROACH],  1);
+    s[B.STAY_NEAR] = Math.min(s[B.STAY_NEAR], 1);
+    s[B.HIDE]     += 14;
+    s[B.GLASS_RUB] += 6;
+  } else if (T < 51) {
+    // Stage 2 — Curious: starts watching, still cautious
+    s[B.HIDE]     -= 6;
+    s[B.GLASS_RUB] += 4;
+    s[B.APPROACH]  = Math.min(s[B.APPROACH], 12);
+  } else if (T >= 76) {
+    // Stage 4 — Trusting: seeks player out, hides almost never
+    s[B.APPROACH]  += 22;
+    s[B.STAY_NEAR] += 18;
+    s[B.HIDE]       = Math.min(s[B.HIDE], 0);
+  }
+
+  return s;
 }
 
 // Weighted-probability pick
@@ -1886,6 +2290,27 @@ function updateHamster(t, dt) {
 
   // Breathing
   hamBodyRef.scale.y = 0.80 * (1 + Math.sin(t * 1.85) * 0.030);
+
+  // While holding, skip all AI/movement — just animate in place
+  if (holdMode) {
+    hamBodyRef.scale.y = 0.80 * (1 + Math.sin(t * 1.85) * 0.030);
+    return;
+  }
+
+  // Low-trust avoidance: if player is very close to cage, flee to far side
+  if (hamState.trust < 26) {
+    const p = controls.getObject().position;
+    const dx = p.x - ENC.x, dz = p.z - ENC.z;
+    const distToCage = Math.sqrt(dx*dx + dz*dz);
+    if (distToCage < 2.8 && ai.behavior !== B.HIDE && !ai.moving) {
+      // Flee to the far corner from the player
+      startBehavior(B.HIDE);
+      const fleeX = ENC.x - Math.sign(dx || 1) * (ENC.w * 0.5 - 0.12);
+      const fleeZ = ENC.z - Math.sign(dz || 1) * (ENC.d * 0.5 - 0.12);
+      hamAI.tx = Math.min(HAM_X1-0.1, Math.max(HAM_X0+0.1, fleeX));
+      hamAI.tz = Math.min(HAM_Z1-0.1, Math.max(HAM_Z0+0.1, fleeZ));
+    }
+  }
 
   // Micro-movement variation when still
   ai.microTimer -= dt;
@@ -3144,6 +3569,7 @@ function finishSetup() {
   const so = document.getElementById('start-overlay');
   so.style.display = 'flex';
   requestAnimationFrame(() => { so.style.opacity = '1'; });
+  setTimeout(() => maybeShowTutorial(), 400);
 }
 
 // ════════════════════════════════════════════════════════
@@ -3530,7 +3956,13 @@ const CARE_DEFS = [
   { id: 'musicbox', label: 'music box',       cagePrompt: () => 'play music for them',  trustGain: 2, pos: [-4.2, 0.08, -1.2], fpPos: [0.24, -0.22, -0.44], fpScale: 3.5  },
   { id: 'sketch',   label: 'sketchbook',      cagePrompt: h => `show drawing to ${h}`,  trustGain: 2, pos: [-5.0, 0.05,  1.0], fpPos: [0.20, -0.26, -0.46], fpScale: 2.8  },
 ];
-const HOLD_TRUST_REQ = 35;  // minimum trust to hold the hamster
+// Probability of successful hold attempt by trust stage
+function holdSuccessChance(trust) {
+  if (trust < 26) return 0.05;
+  if (trust < 51) return 0.30;
+  if (trust < 76) return 0.70;
+  return 0.95;
+}
 
 const careMeshes = {};   // id → THREE.Group
 let heldItem     = null; // null | care def id
@@ -3780,15 +4212,13 @@ function checkCareInteraction() {
     return true;
   } else if (nearCage) {
     // Near cage with no item — hold or talk
-    const ai = hamAI.behavior;
-    const calmEnough = ai===B.IDLE||ai===B.APPROACH||ai===B.STAY_NEAR||ai===B.EAT||ai===B.DRINK;
     const prof  = getActiveProfile();
     const today = dateKey(new Date());
     const used  = prof?.careUsed?.[today] || [];
-    const canHold = hamState.trust >= HOLD_TRUST_REQ && calmEnough && !used.includes('hold');
-    interactPrompt.textContent = canHold
-      ? `[E] gently hold ${hamName}  ·  talk to them`
-      : `${hamName}'s home  ·  [E] talk to them`;
+    const holdUsed = used.includes('hold');
+    interactPrompt.textContent = holdUsed
+      ? `${hamName}'s home  ·  [E] talk to them`
+      : `[E] gently hold ${hamName}  ·  [T] talk to them`;
     interactPrompt.classList.add('visible');
     lookingAtEnclosure = true;
     return true;
@@ -3916,30 +4346,141 @@ function useCareItem() {
   dropCareItem();
 }
 
+const HOLD_DURATION = 10;  // seconds
+let holdMode  = false;
+let holdTimer = 0;
+let holdTrustAccum = 0;
+
+function tryHoldHamster() {
+  const ai = hamAI.behavior;
+  const calmEnough = ai===B.IDLE||ai===B.APPROACH||ai===B.STAY_NEAR||ai===B.EAT||ai===B.DRINK;
+  const chance = holdSuccessChance(hamState.trust) * (calmEnough ? 1.0 : 0.4);
+  if (Math.random() < chance) {
+    doHoldHamster();
+  } else {
+    // Hamster refuses — flinch and flee
+    startBehavior(B.HIDE);
+    const msg = hamState.trust < 26
+      ? `${hamName} darts away...`
+      : hamState.trust < 51
+        ? `${hamName} isn't sure yet ♡`
+        : `${hamName} wriggles free ♡`;
+    setCaption(msg, 600);
+  }
+}
+
 function doHoldHamster() {
   const today = dateKey(new Date());
   const prof  = getActiveProfile();
   const used  = prof?.careUsed?.[today] || [];
   if (used.includes('hold')) return;
 
-  gainTrust(4);
+  // Mark used and give base trust
+  gainTrust(3);
   used.push('hold');
   upsertActiveProfile({ careUsed: { ...(prof?.careUsed || {}), [today]: used } });
 
-  startBehavior(B.APPROACH);
-  setTimeout(() => startBehavior(B.STAY_NEAR), 2000);
+  // Enter hold mode — move hamster into camera space
+  holdMode  = true;
+  holdTimer = 0;
+  holdTrustAccum = 0;
+  hamAI.moving = false;
+
+  // Detach from scene and attach to camera (FPS viewmodel)
+  const worldPos = hamGroup.position.clone();
+  hamGroup._holdReturnScale = hamGroup.scale.x;
+  scene.remove(hamGroup);
+  hamGroup.position.set(0.28, -0.36, -0.58);
+  hamGroup.rotation.set(0.12, Math.PI + 0.25, -0.05);
+  hamGroup.scale.setScalar(0.38);
+  camera.add(hamGroup);
+
   interactPrompt.classList.remove('visible');
+  document.getElementById('hold-bar').classList.add('visible');
+  document.getElementById('hold-bar-fill').style.width = '100%';
+
   const name = window.hamsterName || 'they';
-  const msgs = [
+  const startMsgs = [
     `${name} settled right into your hands ♡`,
     'so small, so warm ♡',
     `${name} trusts you ♡`,
     'tiny heartbeat ♡',
-    'they didn\'t want to leave ♡',
-    `${name} closed their eyes for a moment ♡`,
   ];
-  setCaption(msgs[Math.floor(Math.random() * msgs.length)], 300);
-  setTimeout(clearCaption, 3200);
+  setCaption(startMsgs[Math.floor(Math.random() * startMsgs.length)], 300);
+  // store worldPos for when we put them back
+  hamGroup._holdReturnX = worldPos.x;
+  hamGroup._holdReturnZ = worldPos.z;
+}
+
+function updateHoldMode(dt) {
+  if (!holdMode) return;
+  holdTimer += dt;
+
+  // Drain the timer bar
+  const progress = Math.min(holdTimer / HOLD_DURATION, 1);
+  document.getElementById('hold-bar-fill').style.width = (1 - progress) * 100 + '%';
+
+  // Gentle sway in camera space
+  const t = performance.now() / 1000;
+  hamGroup.position.x = 0.28 + Math.sin(t * 0.9) * 0.006;
+  hamGroup.position.y = -0.36 + Math.sin(t * 1.4) * 0.005;
+
+  // Slow trust trickle while holding
+  holdTrustAccum += dt;
+  if (holdTrustAccum >= 2.5) {
+    holdTrustAccum -= 2.5;
+    gainTrust(0.5);
+  }
+
+  // Caption changes
+  const name = window.hamsterName || 'they';
+  if (Math.abs(holdTimer - 4.0) < dt * 1.1) {
+    const midMsgs = ['tiny heartbeat ♡', `${name} closed their eyes ♡`, 'so warm ♡', 'they didn\'t want to leave ♡'];
+    setCaption(midMsgs[Math.floor(Math.random() * midMsgs.length)], 200);
+  }
+  if (Math.abs(holdTimer - 8.0) < dt * 1.1) {
+    setCaption('[E] to put them back ♡', 200);
+  }
+
+  // Auto-release after duration
+  if (holdTimer >= HOLD_DURATION) endHoldHamster(true);
+}
+
+function endHoldHamster(completed = false) {
+  if (!holdMode) return;
+  holdMode = false;
+
+  // Return hamster to cage
+  camera.remove(hamGroup);
+  hamGroup.rotation.set(0, 0, 0);
+  hamGroup.scale.setScalar(hamGroup._holdReturnScale || 1);
+  hamGroup.position.set(
+    hamGroup._holdReturnX ?? ENC.x,
+    HAM_CY,
+    hamGroup._holdReturnZ ?? ENC.z
+  );
+  scene.add(hamGroup);
+
+  document.getElementById('hold-bar').classList.remove('visible');
+  interactPrompt.classList.remove('visible');
+
+  const name = window.hamsterName || 'they';
+  if (completed) {
+    const endMsgs = [
+      `${name} didn't want to leave ♡`,
+      'they stayed as long as they could ♡',
+      `${name} looked back at you ♡`,
+      'the warmest little moment ♡',
+    ];
+    setCaption(endMsgs[Math.floor(Math.random() * endMsgs.length)], 300);
+    gainTrust(1);  // bonus for completing the full hold
+    setTimeout(clearCaption, 2800);
+  } else {
+    clearCaption();
+  }
+
+  startBehavior(B.STAY_NEAR);
+  setTimeout(() => startBehavior(pickBehaviour(scoreBehaviours())), 3000);
 }
 
 function doWhistle() {
@@ -4689,6 +5230,7 @@ const clock = new THREE.Clock();
   updateHamster(t, dt);
   animateCareItems(t);
   animateShopItems(t);
+  updateHoldMode(dt);
   updateCareParticles(dt);
 
   // Passive trust gain: +1 every 3 minutes of active play, saved every 60s
