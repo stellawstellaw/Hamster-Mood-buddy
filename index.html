@@ -1,0 +1,4712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fluffy Little Hamster</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { overflow: hidden; background: #110e0a; font-family: 'DM Sans', 'Segoe UI', sans-serif; }
+    canvas { display: block; }
+
+    /* ── Vignette ────────────────────────────────────── */
+    body::after {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 1;
+      background: radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(8,5,2,0.45) 100%);
+    }
+
+    /* ── Start overlay ───────────────────────────────── */
+    #start-overlay {
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse at 50% 40%, rgba(60,40,20,0.92) 0%, rgba(8,5,2,0.97) 100%);
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 100; cursor: pointer;
+      opacity: 0; transition: opacity 0.7s;
+    }
+    #start-overlay h1 {
+      color: #f0e0c8; font-size: 2.2rem; font-weight: 300;
+      letter-spacing: 0.18em; margin-bottom: 0.8rem;
+      text-shadow: 0 0 40px rgba(200,140,60,0.4);
+    }
+    #start-overlay p {
+      color: rgba(180,155,120,0.55); font-size: 0.80rem;
+      letter-spacing: 0.10em; font-weight: 300;
+    }
+
+    /* ── Pause menu ──────────────────────────────────── */
+    #pause-menu {
+      position: fixed; inset: 0;
+      background: rgba(8, 5, 2, 0.75);
+      backdrop-filter: blur(18px);
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 90; gap: 1.2rem;
+    }
+    #pause-menu.visible { display: flex; }
+    #pause-menu .pause-title {
+      color: rgba(220,200,175,0.7); font-size: 0.78rem;
+      font-weight: 300; letter-spacing: 0.22em; text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+    .soft-btn {
+      background: rgba(220,180,120,0.10);
+      border: 1px solid rgba(220,180,120,0.28);
+      border-radius: 50px; padding: 0.60rem 2.2rem;
+      color: rgba(230,210,180,0.85); font-size: 0.82rem; font-weight: 300;
+      cursor: pointer; transition: all 0.22s; font-family: inherit;
+      letter-spacing: 0.06em;
+    }
+    .soft-btn:hover {
+      background: rgba(220,180,120,0.20);
+      border-color: rgba(220,180,120,0.55);
+      color: #f0e0c8;
+    }
+
+    /* ── Crosshair ───────────────────────────────────── */
+    #crosshair {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 1.5px solid rgba(240,220,190,0.50);
+      pointer-events: none; z-index: 10; display: none;
+    }
+    #crosshair::after {
+      content: ''; position: absolute;
+      top: 50%; left: 50%; transform: translate(-50%,-50%);
+      width: 3px; height: 3px; border-radius: 50%;
+      background: rgba(240,220,190,0.70);
+    }
+
+    /* ── Interaction prompt ──────────────────────────── */
+    #interact-prompt {
+      position: fixed; bottom: 26%; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(20,14,8,0.60);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(220,180,100,0.30);
+      border-radius: 50px; padding: 0.45rem 1.4rem;
+      color: rgba(240,215,170,0.92); font-size: 0.80rem; font-weight: 400;
+      pointer-events: none; z-index: 20;
+      letter-spacing: 0.06em; white-space: nowrap;
+      opacity: 0; transition: opacity 0.30s;
+      box-shadow: 0 2px 18px rgba(0,0,0,0.55);
+    }
+    #interact-prompt.visible { opacity: 1; }
+
+    /* ── Held item bar ───────────────────────────────── */
+    #held-item-bar {
+      position: fixed; bottom: 1.4rem; right: 1.6rem;
+      display: flex; align-items: center; gap: 0.55rem;
+      background: rgba(20,14,8,0.62); backdrop-filter: blur(12px);
+      border: 1px solid rgba(200,165,80,0.30); border-radius: 50px;
+      padding: 0.38rem 1.1rem 0.38rem 0.8rem;
+      color: rgba(235,210,165,0.90); font-size: 0.74rem; font-weight: 300;
+      letter-spacing: 0.06em; pointer-events: none; z-index: 20;
+      opacity: 0; transition: opacity 0.30s;
+      box-shadow: 0 2px 18px rgba(0,0,0,0.50);
+    }
+    #held-item-bar.visible { opacity: 1; }
+    #held-item-bar .hib-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: rgba(210,175,90,0.75); flex-shrink: 0;
+    }
+
+    /* ── Points display ──────────────────────────────── */
+    #points-display {
+      position: fixed; top: 1.4rem; right: 1.6rem;
+      display: flex; align-items: center; gap: 0.45rem;
+      background: rgba(20,14,8,0.62); backdrop-filter: blur(12px);
+      border: 1px solid rgba(200,165,80,0.30); border-radius: 50px;
+      padding: 0.32rem 1.0rem 0.32rem 0.75rem;
+      color: rgba(235,210,165,0.90); font-size: 0.72rem; font-weight: 300;
+      letter-spacing: 0.07em; pointer-events: none; z-index: 20;
+      opacity: 0; transition: opacity 0.30s;
+      box-shadow: 0 2px 18px rgba(0,0,0,0.45);
+    }
+    #points-display.visible { opacity: 1; }
+    #points-display .pts-gem {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: rgba(180,220,160,0.80); flex-shrink: 0;
+    }
+    /* ── Shop item label (floats over pedestal in screen space) */
+    .shop-label {
+      position: fixed; pointer-events: none; z-index: 21;
+      background: rgba(20,14,8,0.72); backdrop-filter: blur(10px);
+      border: 1px solid rgba(200,165,80,0.22); border-radius: 20px;
+      padding: 0.22rem 0.75rem; font-size: 0.64rem; font-weight: 300;
+      color: rgba(220,195,155,0.88); letter-spacing: 0.07em; white-space: nowrap;
+      transform: translateX(-50%); display: none;
+    }
+    /* ── Movement hint ───────────────────────────────── */
+    #move-hint {
+      position: fixed; bottom: 1.8rem; left: 50%;
+      transform: translateX(-50%);
+      color: rgba(180,160,130,0.40); font-size: 0.70rem; font-weight: 300;
+      pointer-events: none; z-index: 10;
+      letter-spacing: 0.06em; transition: opacity 1.5s;
+    }
+
+    /* ── Story caption ───────────────────────────────── */
+    #story-caption {
+      position: fixed; bottom: 10%; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(10,7,4,0.62);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(200,160,80,0.18);
+      border-radius: 14px; padding: 0.75rem 2rem;
+      color: rgba(245,228,200,0.95);
+      font-size: 1.05rem; font-weight: 300; letter-spacing: 0.08em;
+      text-align: center; line-height: 1.85;
+      pointer-events: none; z-index: 50;
+      transition: opacity 0.65s;
+      max-width: 560px;
+      opacity: 0;
+    }
+
+    /* ── Setup category badge ────────────────────────── */
+    #setup-category {
+      position: fixed; top: 1.4rem; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(180,120,40,0.22);
+      border: 1px solid rgba(220,160,60,0.35);
+      border-radius: 50px; padding: 0.32rem 1.2rem;
+      color: rgba(240,200,120,0.90);
+      font-size: 0.70rem; font-weight: 500; letter-spacing: 0.18em;
+      pointer-events: none; z-index: 50;
+      text-align: center; text-transform: uppercase;
+      opacity: 0; transition: opacity 0.45s;
+    }
+
+    /* ── Name input (setup phase) ────────────────────── */
+    #name-wrap {
+      position: fixed; bottom: 20%; left: 50%;
+      transform: translateX(-50%);
+      display: none; flex-direction: column;
+      align-items: center; gap: 0.55rem;
+      z-index: 60;
+    }
+    #name-wrap.visible { display: flex; }
+    #name-wrap label {
+      color: rgba(200,175,140,0.60);
+      font-size: 0.68rem; font-weight: 300; letter-spacing: 0.12em; text-transform: uppercase;
+    }
+    #ham-name-input {
+      background: rgba(20,14,8,0.55); border: 1px solid rgba(220,180,100,0.32);
+      border-radius: 50px; padding: 0.55rem 1.6rem;
+      color: #f0e0c8; font-family: inherit; font-size: 0.90rem; font-weight: 300;
+      letter-spacing: 0.05em; outline: none; text-align: center; width: 240px;
+      transition: border-color 0.2s; backdrop-filter: blur(8px);
+    }
+    #ham-name-input::placeholder { color: rgba(140,110,70,0.50); }
+    #ham-name-input:focus { border-color: rgba(220,180,100,0.65); }
+
+    /* ── Profile / account screens ──────────────────── */
+    #profile-screen, #owner-name-screen {
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse at 50% 40%, rgba(55,35,18,0.95) 0%, rgba(8,5,2,0.98) 100%);
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 110; gap: 1.8rem;
+    }
+    #profile-screen.visible, #owner-name-screen.visible { display: flex; }
+    .profile-screen-title {
+      color: rgba(240,220,190,0.85); font-size: 0.75rem; font-weight: 400;
+      letter-spacing: 0.28em; text-transform: uppercase;
+      text-shadow: 0 0 30px rgba(200,140,60,0.3);
+    }
+    .profile-cards {
+      display: flex; flex-wrap: wrap; gap: 1rem;
+      justify-content: center; max-width: 600px;
+    }
+    .profile-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(200,165,100,0.18);
+      border-radius: 18px; padding: 1.2rem 1.6rem;
+      min-width: 130px; max-width: 160px;
+      display: flex; flex-direction: column; align-items: center; gap: 0.6rem;
+      cursor: pointer; transition: all 0.22s;
+      position: relative;
+    }
+    .profile-card:hover {
+      background: rgba(200,150,60,0.12);
+      border-color: rgba(220,175,80,0.45);
+      transform: translateY(-2px);
+    }
+    .profile-card.new-profile {
+      border-style: dashed; border-color: rgba(200,165,100,0.28);
+    }
+    .profile-avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+    }
+    .profile-hamname {
+      color: rgba(240,218,185,0.92); font-size: 0.85rem; font-weight: 400;
+      letter-spacing: 0.04em; text-align: center;
+    }
+    .profile-ownername {
+      color: rgba(160,135,100,0.60); font-size: 0.68rem; font-weight: 300;
+      letter-spacing: 0.06em; text-align: center;
+    }
+    .profile-mood-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: rgba(180,155,110,0.35); margin-top: -0.2rem;
+    }
+    .profile-delete-btn {
+      position: absolute; top: 0.55rem; right: 0.65rem;
+      background: none; border: none; cursor: pointer;
+      color: rgba(200,120,100,0.0); font-size: 0.78rem; line-height: 1;
+      transition: color 0.18s; padding: 0.1rem 0.2rem;
+    }
+    .profile-card:hover .profile-delete-btn { color: rgba(200,120,100,0.40); }
+    .profile-delete-btn:hover { color: rgba(220,100,80,0.85) !important; }
+    /* Confirmation face */
+    .profile-card-confirm {
+      display: flex; flex-direction: column; align-items: center; gap: 0.55rem;
+      padding: 0.4rem 0; width: 100%;
+    }
+    .confirm-label {
+      color: rgba(220,170,120,0.80); font-size: 0.68rem; font-weight: 300;
+      letter-spacing: 0.09em; text-align: center; line-height: 1.5;
+    }
+    .confirm-label strong { color: rgba(240,200,150,0.95); font-weight: 500; }
+    .confirm-input {
+      background: rgba(20,14,8,0.55); border: 1px solid rgba(200,120,80,0.30);
+      border-radius: 50px; padding: 0.38rem 1rem;
+      color: #f0e0c8; font-family: inherit; font-size: 0.75rem; font-weight: 300;
+      letter-spacing: 0.04em; outline: none; text-align: center; width: 100%;
+      transition: border-color 0.2s;
+    }
+    .confirm-input:focus { border-color: rgba(220,120,80,0.60); }
+    .confirm-row { display: flex; gap: 0.5rem; width: 100%; }
+    .confirm-yes {
+      flex: 1; background: rgba(180,60,40,0.18); border: 1px solid rgba(200,80,60,0.35);
+      border-radius: 50px; padding: 0.38rem 0; color: rgba(240,160,140,0.80);
+      font-family: inherit; font-size: 0.70rem; font-weight: 300; cursor: pointer;
+      transition: all 0.18s; letter-spacing: 0.04em;
+    }
+    .confirm-yes:not(:disabled):hover { background: rgba(200,60,40,0.32); color: #f0c0b0; }
+    .confirm-yes:disabled { opacity: 0.28; cursor: not-allowed; }
+    .confirm-no {
+      flex: 1; background: none; border: 1px solid rgba(200,165,100,0.20);
+      border-radius: 50px; padding: 0.38rem 0; color: rgba(180,160,120,0.55);
+      font-family: inherit; font-size: 0.70rem; font-weight: 300; cursor: pointer;
+      transition: all 0.18s; letter-spacing: 0.04em;
+    }
+    .confirm-no:hover { background: rgba(200,165,100,0.10); color: rgba(220,200,160,0.80); }
+    /* Owner name screen */
+    .owner-name-label {
+      color: rgba(200,175,140,0.60); font-size: 0.68rem; font-weight: 300;
+      letter-spacing: 0.12em; text-transform: uppercase;
+    }
+    #owner-name-input {
+      background: rgba(20,14,8,0.55); border: 1px solid rgba(220,180,100,0.32);
+      border-radius: 50px; padding: 0.55rem 1.6rem;
+      color: #f0e0c8; font-family: inherit; font-size: 0.90rem; font-weight: 300;
+      letter-spacing: 0.05em; outline: none; text-align: center; width: 240px;
+      transition: border-color 0.2s; backdrop-filter: blur(8px);
+    }
+    #owner-name-input::placeholder { color: rgba(140,110,70,0.50); }
+    #owner-name-input:focus { border-color: rgba(220,180,100,0.65); }
+    .profile-hint {
+      color: rgba(140,120,90,0.45); font-size: 0.66rem; font-weight: 300;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── Mood overlay ────────────────────────────────── */
+    #mood-overlay {
+      position: fixed; inset: 0;
+      background: rgba(8, 5, 2, 0.82);
+      backdrop-filter: blur(18px);
+      display: none; align-items: center; justify-content: center;
+      z-index: 200;
+    }
+    #mood-overlay.visible { display: flex; }
+    #mood-panel {
+      background: rgba(25,18,10,0.80);
+      border: 1px solid rgba(200,160,80,0.20);
+      border-radius: 24px; padding: 2.2rem 2.4rem;
+      max-width: 430px; width: 92%;
+      display: flex; flex-direction: column; gap: 1.4rem;
+      animation: fadeUp 0.32s ease;
+      box-shadow: 0 8px 48px rgba(0,0,0,0.6);
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .mood-title {
+      color: #f0e0c8; font-size: 0.92rem; font-weight: 400;
+      letter-spacing: 0.14em; text-align: center;
+    }
+    .mood-subtitle {
+      color: rgba(150,120,80,0.65); font-size: 0.68rem; font-weight: 300;
+      letter-spacing: 0.08em; text-align: center; margin-top: -0.7rem;
+    }
+    #mood-options { display: flex; gap: 0.45rem; flex-wrap: wrap; justify-content: center; }
+    .mood-btn {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(200,170,110,0.16);
+      border-radius: 50px; padding: 0.42rem 1.1rem;
+      color: rgba(190,165,125,0.70); font-size: 0.76rem; font-weight: 300;
+      letter-spacing: 0.05em; cursor: pointer; transition: all 0.20s;
+      font-family: inherit;
+    }
+    .mood-btn:hover { background: rgba(200,160,80,0.14); color: #e8d0a0; border-color: rgba(200,160,80,0.40); }
+    .mood-btn.selected {
+      background: rgba(200,150,60,0.22); border-color: rgba(220,175,80,0.60);
+      color: #f4dfa0; font-weight: 400;
+    }
+    #mood-note {
+      color: rgba(150,130,100,0.70); font-size: 0.70rem; font-weight: 300;
+      letter-spacing: 0.06em; text-align: center; min-height: 1rem; transition: color 0.3s;
+    }
+    #mood-note.confirmed { color: #a8c878; }
+
+    /* ── Journal textarea ─────────────────────────────── */
+    #mood-journal-wrap {
+      display: none; flex-direction: column; gap: 0.4rem;
+    }
+    #mood-journal-wrap.visible { display: flex; }
+    #mood-journal-input {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(200,165,100,0.20);
+      border-radius: 14px; padding: 0.8rem 1rem;
+      color: rgba(240,218,185,0.90); font-family: inherit; font-size: 0.78rem;
+      font-weight: 300; letter-spacing: 0.03em; line-height: 1.65;
+      resize: none; outline: none; min-height: 90px; width: 100%;
+      transition: border-color 0.22s;
+    }
+    #mood-journal-input::placeholder { color: rgba(140,110,70,0.40); }
+    #mood-journal-input:focus { border-color: rgba(200,165,100,0.42); }
+    .journal-meta {
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .journal-label {
+      color: rgba(160,135,100,0.50); font-size: 0.64rem; font-weight: 300;
+      letter-spacing: 0.09em; text-transform: uppercase;
+    }
+    #journal-chars {
+      color: rgba(140,115,80,0.38); font-size: 0.62rem; font-weight: 300;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── Already-checked-in view ─────────────────────── */
+    .checkin-recap {
+      display: flex; flex-direction: column; align-items: center; gap: 0.8rem;
+    }
+    .checkin-mood-pill {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      border-radius: 50px; padding: 0.38rem 1.2rem;
+      font-size: 0.82rem; font-weight: 400; letter-spacing: 0.06em;
+    }
+    .checkin-note-text {
+      color: rgba(190,165,130,0.65); font-size: 0.76rem; font-weight: 300;
+      letter-spacing: 0.03em; text-align: center; line-height: 1.7;
+      font-style: italic; max-width: 300px;
+    }
+    .mood-panel-link {
+      background: none; border: none; cursor: pointer;
+      color: rgba(180,155,110,0.45); font-size: 0.67rem; font-weight: 300;
+      letter-spacing: 0.10em; font-family: inherit; transition: color 0.2s;
+      padding: 0; text-decoration: none;
+    }
+    .mood-panel-link:hover { color: rgba(220,190,140,0.75); }
+
+    /* ── Calendar / history overlay ─────────────────── */
+    #history-overlay {
+      position: fixed; inset: 0;
+      background: rgba(8,5,2,0.88); backdrop-filter: blur(20px);
+      display: none; align-items: center; justify-content: center;
+      z-index: 210;
+    }
+    #history-overlay.visible { display: flex; }
+    #history-panel {
+      background: rgba(20,13,7,0.92);
+      border: 1px solid rgba(200,160,80,0.18);
+      border-radius: 24px; padding: 1.6rem 1.8rem;
+      width: min(440px, 96vw);
+      display: flex; flex-direction: column; gap: 1.1rem;
+      animation: fadeUp 0.28s ease;
+      box-shadow: 0 12px 60px rgba(0,0,0,0.70);
+    }
+    /* Header row */
+    .cal-header {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .cal-title {
+      color: rgba(240,218,185,0.85); font-size: 0.78rem; font-weight: 400;
+      letter-spacing: 0.22em; text-transform: uppercase;
+    }
+    .cal-nav-row { display: flex; align-items: center; gap: 0.6rem; }
+    .cal-month-label {
+      color: rgba(220,195,155,0.80); font-size: 0.80rem; font-weight: 300;
+      letter-spacing: 0.10em; min-width: 120px; text-align: center;
+    }
+    .cal-nav {
+      background: none; border: 1px solid rgba(200,165,100,0.22);
+      border-radius: 50%; width: 28px; height: 28px;
+      color: rgba(200,175,135,0.65); font-size: 1.0rem; line-height: 1;
+      cursor: pointer; transition: all 0.18s; display: flex; align-items: center; justify-content: center;
+      font-family: inherit;
+    }
+    .cal-nav:hover { background: rgba(200,165,100,0.14); color: #f0dfc0; border-color: rgba(200,165,100,0.50); }
+    /* Weekday row */
+    .cal-weekdays {
+      display: grid; grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+    }
+    .cal-weekdays span {
+      color: rgba(160,138,108,0.45); font-size: 0.60rem; font-weight: 400;
+      letter-spacing: 0.10em; text-transform: uppercase; padding: 0.2rem 0;
+    }
+    /* Grid */
+    .cal-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+    }
+    .cal-day {
+      aspect-ratio: 1; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.68rem; font-weight: 300; color: rgba(170,145,115,0.35);
+      cursor: default; position: relative; transition: all 0.16s;
+      border: 1px solid transparent;
+    }
+    .cal-day.has-entry {
+      cursor: pointer; color: rgba(240,215,175,0.90); font-weight: 400;
+    }
+    .cal-day.has-entry:hover { filter: brightness(1.25); transform: scale(1.08); }
+    .cal-day.is-today {
+      border-color: rgba(220,180,80,0.55);
+      color: rgba(240,215,175,0.90);
+    }
+    .cal-day.is-future { color: rgba(140,118,90,0.20); }
+    .cal-day.selected { outline: 2px solid rgba(255,255,255,0.55); outline-offset: 1px; }
+    /* Day detail card */
+    #cal-detail {
+      display: none; flex-direction: column; gap: 0.6rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(200,165,100,0.14);
+      border-radius: 14px; padding: 0.9rem 1.1rem;
+      animation: fadeUp 0.22s ease;
+    }
+    #cal-detail.visible { display: flex; }
+    .cal-detail-top {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .cal-detail-date {
+      color: rgba(160,138,108,0.60); font-size: 0.65rem; font-weight: 300;
+      letter-spacing: 0.10em; text-transform: uppercase;
+    }
+    .cal-detail-pill {
+      border-radius: 50px; padding: 0.22rem 0.9rem;
+      font-size: 0.70rem; font-weight: 400; letter-spacing: 0.06em;
+    }
+    .cal-detail-note {
+      color: rgba(200,178,148,0.75); font-size: 0.76rem; font-weight: 300;
+      letter-spacing: 0.03em; line-height: 1.7; font-style: italic;
+    }
+    .cal-detail-empty {
+      color: rgba(140,118,90,0.38); font-size: 0.72rem; font-weight: 300;
+      letter-spacing: 0.06em; text-align: center;
+    }
+    /* Legend */
+    .cal-legend {
+      display: flex; flex-wrap: wrap; gap: 0.40rem; justify-content: center;
+      padding-top: 0.3rem; border-top: 1px solid rgba(200,165,100,0.08);
+    }
+    .cal-legend-item {
+      display: flex; align-items: center; gap: 0.32rem;
+    }
+    .cal-legend-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .cal-legend-label {
+      color: rgba(160,138,108,0.52); font-size: 0.60rem; font-weight: 300;
+      letter-spacing: 0.05em;
+    }
+    /* Bottom row */
+    .cal-footer {
+      display: flex; justify-content: center;
+    }
+
+    /* ── Secret panel ────────────────────────────────── */
+    #secret-overlay {
+      position: fixed; inset: 0;
+      background: rgba(4,2,1,0.92); backdrop-filter: blur(24px);
+      display: none; align-items: center; justify-content: center;
+      z-index: 220;
+    }
+    #secret-overlay.visible { display: flex; }
+    #secret-panel {
+      background: rgba(14,9,5,0.96);
+      border: 1px solid rgba(140,200,160,0.20);
+      border-radius: 24px; padding: 1.8rem 2.0rem;
+      width: min(400px, 94vw);
+      display: flex; flex-direction: column; gap: 1.3rem;
+      animation: fadeUp 0.32s ease;
+      box-shadow: 0 12px 60px rgba(0,0,0,0.80), 0 0 60px rgba(100,180,120,0.06);
+    }
+    .sp-title {
+      color: rgba(160,220,175,0.70); font-size: 0.65rem; font-weight: 400;
+      letter-spacing: 0.28em; text-transform: uppercase; text-align: center;
+    }
+    .sp-name {
+      color: rgba(235,215,185,0.80); font-size: 1.0rem; font-weight: 300;
+      letter-spacing: 0.10em; text-align: center;
+    }
+    .sp-section {
+      display: flex; flex-direction: column; gap: 0.55rem;
+    }
+    .sp-section-label {
+      color: rgba(140,200,160,0.45); font-size: 0.58rem; font-weight: 400;
+      letter-spacing: 0.22em; text-transform: uppercase;
+    }
+    .sp-trust-wrap {
+      display: flex; align-items: center; gap: 0.8rem;
+    }
+    .sp-trust-bar-bg {
+      flex: 1; height: 4px; border-radius: 2px;
+      background: rgba(255,255,255,0.06);
+    }
+    .sp-trust-bar-fill {
+      height: 100%; border-radius: 2px;
+      background: linear-gradient(90deg, rgba(120,200,140,0.60), rgba(180,240,180,0.80));
+      transition: width 0.8s ease;
+    }
+    .sp-trust-num {
+      color: rgba(180,240,180,0.70); font-size: 0.72rem; font-weight: 300;
+      min-width: 36px; text-align: right;
+    }
+    .sp-trait {
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .sp-trait-left {
+      color: rgba(180,165,145,0.45); font-size: 0.62rem; font-weight: 300;
+      letter-spacing: 0.04em; min-width: 72px; text-align: right;
+    }
+    .sp-trait-right {
+      color: rgba(180,165,145,0.45); font-size: 0.62rem; font-weight: 300;
+      letter-spacing: 0.04em; min-width: 72px;
+    }
+    .sp-trait-track {
+      flex: 1; height: 3px; border-radius: 2px;
+      background: rgba(255,255,255,0.06); position: relative;
+    }
+    .sp-trait-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: rgba(160,220,175,0.75);
+      position: absolute; top: 50%; transform: translate(-50%,-50%);
+    }
+    .sp-stat-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+    }
+    .sp-stat-label {
+      color: rgba(160,145,125,0.50); font-size: 0.66rem; font-weight: 300;
+      letter-spacing: 0.06em;
+    }
+    .sp-stat-val {
+      color: rgba(220,200,170,0.75); font-size: 0.72rem; font-weight: 300;
+      letter-spacing: 0.04em;
+    }
+    .sp-close {
+      background: none; border: 1px solid rgba(140,200,160,0.18);
+      border-radius: 50px; padding: 0.40rem 1.4rem;
+      color: rgba(140,200,160,0.50); font-size: 0.70rem; font-weight: 300;
+      cursor: pointer; transition: all 0.20s; font-family: inherit;
+      letter-spacing: 0.08em; align-self: center;
+    }
+    .sp-close:hover { border-color: rgba(140,200,160,0.45); color: rgba(160,230,180,0.80); }
+    .sp-hint {
+      color: rgba(120,180,135,0.30); font-size: 0.58rem; font-weight: 300;
+      letter-spacing: 0.10em; text-align: center; margin-top: -0.4rem;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+<div id="crosshair"></div>
+<div id="interact-prompt"></div>
+<div id="held-item-bar"><span class="hib-dot"></span><span id="hib-label"></span></div>
+<div id="points-display"><span class="pts-gem"></span><span id="pts-count">0</span> pts</div>
+<div id="move-hint">W A S D to move &nbsp;·&nbsp; mouse to look &nbsp;·&nbsp; ESC to pause</div>
+
+<!-- Secret panel overlay -->
+<div id="secret-overlay">
+  <div id="secret-panel">
+    <div class="sp-title">things only you know</div>
+    <div class="sp-name" id="sp-hamname"></div>
+    <div class="sp-section">
+      <div class="sp-section-label">trust</div>
+      <div class="sp-trust-wrap">
+        <div class="sp-trust-bar-bg"><div class="sp-trust-bar-fill" id="sp-trust-fill"></div></div>
+        <div class="sp-trust-num" id="sp-trust-num"></div>
+      </div>
+    </div>
+    <div class="sp-section">
+      <div class="sp-section-label">personality</div>
+      <div id="sp-traits"></div>
+    </div>
+    <div class="sp-section">
+      <div class="sp-section-label">your history together</div>
+      <div id="sp-stats"></div>
+    </div>
+    <div class="sp-hint">type "showme" anytime to open this</div>
+    <button class="sp-close" onclick="closeSecretPanel()">close</button>
+  </div>
+</div>
+
+<!-- Story overlay (shown first) -->
+<!-- Story caption (3D in-world text at bottom) -->
+<div id="story-caption"></div>
+
+<!-- Setup category hint (top center during setup) -->
+<div id="setup-category"></div>
+
+<!-- Name input (shown during setup) -->
+<div id="name-wrap">
+  <label>give them a name</label>
+  <input id="ham-name-input" type="text" placeholder="little one..." maxlength="24" autocomplete="off">
+</div>
+
+<!-- Profile selection screen -->
+<div id="profile-screen">
+  <div class="profile-screen-title">whose hamster?</div>
+  <div class="profile-cards" id="profile-cards"></div>
+</div>
+
+<!-- Owner name screen (new profile) -->
+<div id="owner-name-screen">
+  <div class="profile-screen-title">fluffy little hamster</div>
+  <div class="owner-name-label">what's your name?</div>
+  <input id="owner-name-input" type="text" placeholder="your name..." maxlength="24" autocomplete="off">
+  <button class="soft-btn" onclick="confirmOwnerName()">meet your hamster →</button>
+  <div class="profile-hint">press Enter or click the button</div>
+</div>
+
+<!-- Start screen -->
+<div id="start-overlay" onclick="startGame()">
+  <h1>fluffy little hamster</h1>
+  <p>click anywhere to enter your room</p>
+</div>
+
+<!-- Pause menu -->
+<div id="pause-menu" id="pause-menu">
+  <div class="pause-title">paused</div>
+  <button class="soft-btn" onclick="resumeGame()">continue</button>
+  <button class="soft-btn" onclick="openHistoryOverlay(true)">mood journal</button>
+  <button class="soft-btn" onclick="showProfileScreen()" style="opacity:0.55;font-size:0.72rem;padding:0.45rem 1.6rem">switch profile</button>
+</div>
+
+<!-- Mood check-in overlay -->
+<div id="mood-overlay">
+  <div id="mood-panel">
+    <div class="mood-title">how are you feeling today?</div>
+    <div class="mood-subtitle">your hamster picks up on your energy</div>
+    <div id="mood-options"></div>
+    <div id="mood-note"></div>
+    <div id="mood-journal-wrap">
+      <div class="journal-meta">
+        <span class="journal-label">anything on your mind?</span>
+        <span id="journal-chars">0 / 400</span>
+      </div>
+      <textarea id="mood-journal-input" placeholder="write about your day, what happened, how you're really feeling... (optional)" maxlength="400" rows="4"></textarea>
+    </div>
+    <button class="soft-btn" id="mood-submit-btn" style="align-self:center" onclick="submitMood()">tell them →</button>
+    <button class="mood-panel-link" style="align-self:center" onclick="openHistoryOverlay(false)">view past entries →</button>
+  </div>
+</div>
+
+<!-- Mood history overlay -->
+<div id="history-overlay">
+  <div id="history-panel">
+    <!-- Header -->
+    <div class="cal-header">
+      <div class="cal-title">mood journal</div>
+      <div class="cal-nav-row">
+        <button class="cal-nav" onclick="calPrevMonth()">&#8249;</button>
+        <div class="cal-month-label" id="cal-month-label"></div>
+        <button class="cal-nav" onclick="calNextMonth()">&#8250;</button>
+      </div>
+    </div>
+    <!-- Weekday labels -->
+    <div class="cal-weekdays">
+      <span>su</span><span>mo</span><span>tu</span><span>we</span>
+      <span>th</span><span>fr</span><span>sa</span>
+    </div>
+    <!-- Day grid -->
+    <div class="cal-grid" id="cal-grid"></div>
+    <!-- Selected day detail -->
+    <div id="cal-detail">
+      <div class="cal-detail-top">
+        <div class="cal-detail-date" id="cal-detail-date"></div>
+        <div class="cal-detail-pill" id="cal-detail-pill"></div>
+      </div>
+      <div id="cal-detail-body"></div>
+    </div>
+    <!-- Legend -->
+    <div class="cal-legend" id="cal-legend"></div>
+    <!-- Footer -->
+    <div class="cal-footer">
+      <button class="mood-panel-link" onclick="closeHistoryOverlay()">✕ close</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+<script>
+
+// ════════════════════════════════════════════════════════
+// RENDERER
+// ════════════════════════════════════════════════════════
+const renderer = new THREE.WebGLRenderer({
+  canvas: document.getElementById('canvas'), antialias: true
+});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.92;
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// ════════════════════════════════════════════════════════
+// SCENE
+// ════════════════════════════════════════════════════════
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xc8bfb4);
+scene.fog = new THREE.Fog(0xc8bfb4, 10, 20);
+
+// ════════════════════════════════════════════════════════
+// CAMERA  (first-person, eye height 1.65)
+// ════════════════════════════════════════════════════════
+const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 40);
+
+// ════════════════════════════════════════════════════════
+// POINTER LOCK CONTROLS
+// ════════════════════════════════════════════════════════
+const controls = new THREE.PointerLockControls(camera, renderer.domElement);
+scene.add(controls.getObject());
+controls.getObject().position.set(0, 1.65, 3.8);
+
+const move = { f: false, b: false, l: false, r: false };
+const vel  = new THREE.Vector3();
+let moodOverlayOpen    = false;  // suppresses pause-menu when mood overlay is showing
+let historyOverlayOpen = false;  // suppresses pause-menu when history overlay is showing
+let nameInputOpen      = false;  // suppresses pause-menu when name input is focused
+const SPEED = 3.2;
+const EYE_H = 1.65;
+
+// Room hard boundaries (walls at ±6.8 X, -5.8/+5.8 Z)
+const BOUNDS = { x0: -6.6, x1: 6.6, z0: -5.75, z1: 5.75 };
+
+document.addEventListener('keydown', e => {
+  if (e.code==='KeyW'||e.code==='ArrowUp')    move.f = true;
+  if (e.code==='KeyS'||e.code==='ArrowDown')  move.b = true;
+  if (e.code==='KeyA'||e.code==='ArrowLeft')  move.l = true;
+  if (e.code==='KeyD'||e.code==='ArrowRight') move.r = true;
+  if (e.code === 'KeyE' && controls.isLocked) {
+    if (GAME_STATE === 'story') {
+      // Phase 1: must be looking at the box to open it
+      // Phase 2+: E from anywhere advances (caption already told them to press E)
+      if (storyPhase === 1 && lookingAtBox) advanceStory3D();
+      else if (storyPhase >= 2) advanceStory3D();
+    } else if (GAME_STATE === 'setup' && lookingAtSetupItem) {
+      selectSetupItem(lookingAtSetupItem);
+    } else if (GAME_STATE === 'playing') {
+      if (nearCareItem) {
+        pickupCareItem(nearCareItem);
+      } else if (heldItem && lookingAtEnclosure) {
+        useCareItem();
+      } else if (!heldItem && lookingAtEnclosure) {
+        // Hold hamster if eligible, else open mood overlay
+        const ai = hamAI.behavior;
+        const calmEnough = ai===B.IDLE||ai===B.APPROACH||ai===B.STAY_NEAR||ai===B.EAT||ai===B.DRINK;
+        const canHold = hamState.trust >= HOLD_TRUST_REQ && calmEnough &&
+                        !getCareItemsUsedToday().includes('hold');
+        if (canHold) doHoldHamster(); else openMoodOverlay();
+      } else if (nearShopItem !== null) {
+        buyShopItem(nearShopItem);
+      }
+    }
+  }
+  // [Q] — whistle near cage, once per day
+  if (e.code === 'KeyQ' && controls.isLocked && GAME_STATE === 'playing') {
+    doWhistle();
+  }
+});
+
+// ── Secret "showme" buffer ────────────────────────────
+let _secretBuf = '';
+document.addEventListener('keypress', e => {
+  if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+  if (document.activeElement && document.activeElement.tagName === 'TEXTAREA') return;
+  _secretBuf = (_secretBuf + e.key).slice(-6);
+  if (_secretBuf === 'showme') { _secretBuf = ''; openSecretPanel(); }
+});
+
+document.addEventListener('keyup', e => {
+  if (e.code==='KeyW'||e.code==='ArrowUp')    move.f = false;
+  if (e.code==='KeyS'||e.code==='ArrowDown')  move.b = false;
+  if (e.code==='KeyA'||e.code==='ArrowLeft')  move.l = false;
+  if (e.code==='KeyD'||e.code==='ArrowRight') move.r = false;
+});
+
+let _firstLock = true;
+controls.addEventListener('lock', () => {
+  nameInputOpen = false;
+  const ov = document.getElementById('start-overlay');
+  ov.style.opacity = '0';
+  setTimeout(() => ov.style.display = 'none', 600);
+  document.getElementById('crosshair').style.display = 'block';
+  document.getElementById('pause-menu').classList.remove('visible');
+  // Fade out movement hint after 4s
+  setTimeout(() => {
+    const h = document.getElementById('move-hint');
+    if (h) h.style.opacity = '0';
+  }, 4000);
+  // First lock in story mode — show opening caption
+  if (_firstLock && GAME_STATE === 'story') {
+    _firstLock = false;
+    setTimeout(() => setCaption('a knock at the door.', 800), 1200);
+  }
+});
+controls.addEventListener('unlock', () => {
+  if (!moodOverlayOpen && !nameInputOpen && !historyOverlayOpen)
+    document.getElementById('pause-menu').classList.add('visible');
+});
+
+
+// Name input: release pointer so player can type
+document.getElementById('ham-name-input').addEventListener('mousedown', e => {
+  e.stopPropagation();
+});
+window.startGame  = () => controls.lock();
+window.resumeGame = () => controls.lock();
+
+// Furniture obstacle rectangles — populated as furniture is built below
+const OBSTACLES = [];
+// Bedding mound materials — stored for recoloring from customization
+const beddingMats = [];
+const PLAYER_R  = 0.20;
+
+function isBlocked(x, z) {
+  if (x < BOUNDS.x0 + PLAYER_R || x > BOUNDS.x1 - PLAYER_R ||
+      z < BOUNDS.z0 + PLAYER_R || z > BOUNDS.z1 - PLAYER_R) return true;
+  for (const o of OBSTACLES) {
+    if (x > o.x0 - PLAYER_R && x < o.x1 + PLAYER_R &&
+        z > o.z0 - PLAYER_R && z < o.z1 + PLAYER_R) return true;
+  }
+  return false;
+}
+
+function updateMovement(dt) {
+  if (!controls.isLocked) return;
+  const damp = Math.exp(-9 * dt);
+  vel.x *= damp; vel.z *= damp;
+  const dir = new THREE.Vector3(
+    (move.r ? 1 : 0) - (move.l ? 1 : 0), 0,
+    (move.b ? 1 : 0) - (move.f ? 1 : 0)
+  );
+  if (dir.lengthSq() > 0) dir.normalize();
+  vel.x += dir.x * SPEED * (1 - damp);
+  vel.z += dir.z * SPEED * (1 - damp);
+
+  const p = controls.getObject().position;
+
+  // Try X (strafe) — save world pos, attempt move, revert if blocked
+  const px0 = p.x, pz0 = p.z;
+  controls.moveRight(vel.x * dt);
+  if (isBlocked(p.x, p.z)) { p.x = px0; p.z = pz0; vel.x = 0; }
+
+  // Try Z (forward) — same pattern
+  const px1 = p.x, pz1 = p.z;
+  controls.moveForward(-vel.z * dt);
+  if (isBlocked(p.x, p.z)) { p.x = px1; p.z = pz1; vel.z = 0; }
+
+  p.y = EYE_H;
+}
+
+// ════════════════════════════════════════════════════════
+// LIGHTING
+// ════════════════════════════════════════════════════════
+
+// Soft warm room ambient
+const ambient = new THREE.AmbientLight(0xffe0c0, 0.9);
+scene.add(ambient);
+
+// Window light — warm diffuse coming through back-left window
+const winLight = new THREE.DirectionalLight(0xfff0d8, 1.8);
+winLight.position.set(-4, 5, -9);
+winLight.castShadow = true;
+winLight.shadow.mapSize.set(1024, 1024);
+winLight.shadow.camera.near = 0.5;
+winLight.shadow.camera.far  = 30;
+winLight.shadow.camera.left = winLight.shadow.camera.bottom = -10;
+winLight.shadow.camera.right = winLight.shadow.camera.top  =  10;
+winLight.shadow.bias = -0.002;
+scene.add(winLight);
+
+// Ceiling lamp — central warm glow
+const ceilLamp = new THREE.PointLight(0xffd8a8, 1.2, 14);
+ceilLamp.position.set(0, 5.1, 0);
+scene.add(ceilLamp);
+
+// Desk lamp near enclosure — small warm accent
+const deskLamp = new THREE.PointLight(0xffcc88, 1.4, 7);
+deskLamp.position.set(4.2, 2.8, -3.5);
+scene.add(deskLamp);
+
+// ════════════════════════════════════════════════════════
+// MATERIALS  (reused throughout)
+// ════════════════════════════════════════════════════════
+const MAT = {
+  wall:    new THREE.MeshStandardMaterial({ color: 0xddd4c4, roughness: 0.92 }),
+  floor:   new THREE.MeshStandardMaterial({ color: 0xb8905a, roughness: 0.88 }),
+  ceil:    new THREE.MeshStandardMaterial({ color: 0xe8e2d8, roughness: 0.95 }),
+  wood:    new THREE.MeshStandardMaterial({ color: 0x8a5c35, roughness: 0.85 }),
+  woodLt:  new THREE.MeshStandardMaterial({ color: 0xb8845a, roughness: 0.82 }),
+  fabric:  new THREE.MeshStandardMaterial({ color: 0xc8a898, roughness: 0.98 }),  // dusty pink
+  fabricB: new THREE.MeshStandardMaterial({ color: 0xa0b8a8, roughness: 0.98 }),  // sage green
+  rug:     new THREE.MeshStandardMaterial({ color: 0xb0a090, roughness: 1.0  }),
+  glass:   new THREE.MeshPhysicalMaterial({
+             color: 0xddf0ff, transparent: true, opacity: 0.12,
+             roughness: 0, metalness: 0, reflectivity: 0.9,
+             side: THREE.DoubleSide, depthWrite: false }),
+  glassWin:new THREE.MeshStandardMaterial({
+             color: 0xd0e8f4, transparent: true, opacity: 0.28,
+             roughness: 0, metalness: 0.05,
+             emissive: 0xd4eaf8, emissiveIntensity: 0.35,
+             side: THREE.DoubleSide }),
+  frame:   new THREE.MeshStandardMaterial({ color: 0x2a2420, roughness: 0.28, metalness: 0.88 }),
+  bedding: new THREE.MeshStandardMaterial({ color: 0xd4b896, roughness: 1.0  }),
+  cream:   new THREE.MeshStandardMaterial({ color: 0xf0e4d4, roughness: 0.95 }),
+  lampShd: new THREE.MeshStandardMaterial({ color: 0xe8d4a8, roughness: 0.7,
+             emissive: 0xffcc88, emissiveIntensity: 0.15 }),
+};
+
+// ════════════════════════════════════════════════════════
+// ROOM SHELL
+// ════════════════════════════════════════════════════════
+const RW = 7, RD = 6, RH = 5.5;  // half-width, half-depth, full height
+
+// Floor
+const floorMesh = new THREE.Mesh(new THREE.PlaneGeometry(RW*2, RD*2), MAT.floor);
+floorMesh.rotation.x = -Math.PI / 2;
+floorMesh.receiveShadow = true;
+scene.add(floorMesh);
+
+// Ceiling
+const ceilMesh = new THREE.Mesh(new THREE.PlaneGeometry(RW*2, RD*2), MAT.ceil);
+ceilMesh.rotation.x = Math.PI / 2;
+ceilMesh.position.y = RH;
+scene.add(ceilMesh);
+
+// Walls (four planes facing inward)
+function addWall(w, h, x, y, z, ry) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), MAT.wall);
+  m.rotation.y = ry; m.position.set(x, y, z);
+  m.receiveShadow = true;
+  scene.add(m);
+  return m;
+}
+addWall(RW*2, RH,  0,    RH/2, -RD,  0         );  // back
+addWall(RW*2, RH,  0,    RH/2,  RD,  Math.PI   );  // front
+addWall(RD*2, RH, -RW,   RH/2,  0,   Math.PI/2 );  // left
+addWall(RD*2, RH,  RW,   RH/2,  0,  -Math.PI/2 );  // right
+
+// ── Baseboard trim ────────────────────────────────────
+const baseH = 0.12;
+function addBase(w, d, x, z, ry) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, baseH, d), MAT.woodLt);
+  m.position.set(x, baseH/2, z); m.rotation.y = ry;
+  scene.add(m);
+}
+addBase(RW*2+0.01, 0.06,  0,        -RD+0.03,  0         );
+addBase(RW*2+0.01, 0.06,  0,         RD-0.03,  0         );
+addBase(RD*2+0.01, 0.06, -RW+0.03,   0,        Math.PI/2 );
+addBase(RD*2+0.01, 0.06,  RW-0.03,   0,        Math.PI/2 );
+
+// ════════════════════════════════════════════════════════
+// DOOR  (right wall, near front corner)
+// ════════════════════════════════════════════════════════
+{
+  const dz  = 3.4;    // Z centre of door opening (right wall, toward front)
+  const dW  = 1.05;   // door width (along Z)
+  const dH  = 2.25;   // door height
+  const fT  = 0.08;   // frame thickness
+  const wx  = RW;     // right wall X
+
+  // Frame moulding — top bar + two side stiles
+  const fm = new THREE.MeshStandardMaterial({ color: 0xe2ddd4, roughness: 0.88 });
+  const ftop = new THREE.Mesh(new THREE.BoxGeometry(fT*1.4, fT, dW + fT*2), fm);
+  ftop.position.set(wx - fT*0.7, dH + fT/2, dz);
+  scene.add(ftop);
+  for (const sz of [dz - dW/2 - fT/2, dz + dW/2 + fT/2]) {
+    const fs = new THREE.Mesh(new THREE.BoxGeometry(fT*1.4, dH, fT), fm);
+    fs.position.set(wx - fT*0.7, dH/2, sz);
+    scene.add(fs);
+  }
+
+  // Door panel — pivot group so it opens inward
+  const dm = new THREE.MeshStandardMaterial({ color: 0xbc8c44, roughness: 0.80 });
+  const doorPivot = new THREE.Group();
+  doorPivot.position.set(wx - 0.03, 0, dz - dW/2);  // hinge at near Z edge
+  const doorPanel = new THREE.Mesh(new THREE.BoxGeometry(0.055, dH, dW - 0.02), dm);
+  doorPanel.position.set(0, dH/2, dW/2 - 0.01);
+  doorPivot.add(doorPanel);
+
+  // Door face details — two inset panels
+  const panelMat = new THREE.MeshStandardMaterial({ color: 0xaa7c38, roughness: 0.82 });
+  for (const [py, ph] of [[dH*0.72, dH*0.34], [dH*0.3, dH*0.30]]) {
+    const inset = new THREE.Mesh(new THREE.BoxGeometry(0.02, ph, dW*0.62), panelMat);
+    inset.position.set(-0.028, py, dW/2 - 0.01);
+    doorPivot.add(inset);
+  }
+
+  doorPivot.rotation.y = -0.28;   // slightly ajar — box was just delivered
+  scene.add(doorPivot);
+
+  // Doorknob (on the wall side since door is ajar)
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.028, 10, 8),
+    new THREE.MeshStandardMaterial({ color: 0xc8980c, roughness: 0.06, metalness: 0.94 }));
+  knob.position.set(wx - 0.09, dH * 0.44, dz + dW*0.28);
+  scene.add(knob);
+  const knobPlate = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.06, 0.028),
+    new THREE.MeshStandardMaterial({ color: 0xb08010, roughness: 0.3, metalness: 0.8 }));
+  knobPlate.position.set(wx - 0.09, dH * 0.44, dz + dW*0.28 - 0.01);
+  scene.add(knobPlate);
+
+  // Threshold strip
+  const thresh = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.045, dW + 0.06),
+    new THREE.MeshStandardMaterial({ color: 0x907038, roughness: 0.5, metalness: 0.22 }));
+  thresh.position.set(wx - 0.06, 0.022, dz);
+  scene.add(thresh);
+
+  // Subtle warm glow strip — light coming from outside (door ajar)
+  const glowMat = new THREE.MeshStandardMaterial({
+    color: 0xffe8a0, emissive: 0xffe880, emissiveIntensity: 0.55,
+    transparent: true, opacity: 0.18
+  });
+  const glow = new THREE.Mesh(new THREE.BoxGeometry(0.06, dH, 0.12), glowMat);
+  glow.position.set(wx - 0.06, dH/2, dz - dW/2 + 0.06);
+  scene.add(glow);
+}
+
+// ════════════════════════════════════════════════════════
+// WINDOWS  (back wall, offset to the left)
+// ════════════════════════════════════════════════════════
+function buildWindow(cx, cz) {
+  const fW = 0.1;  // frame width
+  const wW = 2.8, wH = 2.4;  // window opening
+
+  // Outer frame
+  for (const [bw, bh, ox, oy] of [
+    [wW+fW*2, fH=fW, 0, wH/2+fW/2],  // top
+    [wW+fW*2, fW,    0,-wH/2-fW/2],  // bottom
+    [fW, wH,  -(wW/2+fW/2), 0],       // left
+    [fW, wH,   (wW/2+fW/2), 0],       // right
+    // cross dividers
+    [wW, fW*0.7, 0, 0],               // mid horizontal
+    [fW*0.7, wH, 0, 0],               // mid vertical
+  ]) {
+    const fm = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, fW), MAT.cream);
+    fm.position.set(cx+ox, 1.8+oy, cz+0.01);
+    scene.add(fm);
+  }
+
+  // Glass panes (4 quadrants)
+  for (const [ox, oy] of [[-wW/4,wH/4],[-wW/4,-wH/4],[wW/4,wH/4],[wW/4,-wH/4]]) {
+    const pg = new THREE.Mesh(new THREE.PlaneGeometry(wW/2-fW, wH/2-fW), MAT.glassWin);
+    pg.position.set(cx+ox, 1.8+oy, cz+0.02);
+    scene.add(pg);
+  }
+
+  // Glow plane just outside the wall (mimics exterior sky brightness)
+  const glow = new THREE.Mesh(new THREE.PlaneGeometry(wW+0.4, wH+0.4),
+    new THREE.MeshStandardMaterial({ color: 0xfff0d8, emissive: 0xfff0d8, emissiveIntensity: 0.6 }));
+  glow.position.set(cx, 1.8, cz-0.08);
+  glow.rotation.y = Math.PI;
+  scene.add(glow);
+
+  // Window sill
+  const sill = new THREE.Mesh(new THREE.BoxGeometry(wW+fW*2+0.1, 0.06, 0.22), MAT.cream);
+  sill.position.set(cx, 1.8-wH/2-0.01, cz+0.08);
+  scene.add(sill);
+}
+
+buildWindow(-2.5, -RD+0.04);  // back wall, left of centre
+
+// ════════════════════════════════════════════════════════
+// CEILING LIGHT FIXTURE
+// ════════════════════════════════════════════════════════
+{
+  // Canopy
+  const canopy = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.06, 16), MAT.cream);
+  canopy.position.set(0, RH-0.03, 0);
+  scene.add(canopy);
+  // Cord
+  const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.55, 6), MAT.wood);
+  cord.position.set(0, RH-0.35, 0);
+  scene.add(cord);
+  // Shade
+  const shade = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.55, 0.32, 20), MAT.lampShd);
+  shade.position.set(0, RH-0.72, 0);
+  scene.add(shade);
+}
+
+// ════════════════════════════════════════════════════════
+// SOFT CHAIR + RUG  (back-left corner)
+// ════════════════════════════════════════════════════════
+{
+  const cx = -4.4, cz = -3.8;
+
+  // Rug
+  const rug = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.04, 2.6), MAT.rug);
+  rug.position.set(cx+0.4, 0.02, cz+0.3);
+  rug.receiveShadow = true;
+  scene.add(rug);
+
+  // Seat
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.28, 1.3), MAT.fabric);
+  seat.position.set(cx, 0.52, cz);
+  seat.castShadow = seat.receiveShadow = true;
+  scene.add(seat);
+
+  // Seat cushion
+  const cush = new THREE.Mesh(new THREE.BoxGeometry(1.12, 0.14, 1.12), MAT.cream);
+  cush.position.set(cx, 0.73, cz);
+  cush.castShadow = true;
+  scene.add(cush);
+
+  // Back rest
+  const back = new THREE.Mesh(new THREE.BoxGeometry(1.3, 1.2, 0.25), MAT.fabric);
+  back.position.set(cx, 1.22, cz-0.52);
+  back.castShadow = back.receiveShadow = true;
+  scene.add(back);
+
+  // Back cushion
+  const bcush = new THREE.Mesh(new THREE.BoxGeometry(1.12, 1.0, 0.14), MAT.cream);
+  bcush.position.set(cx, 1.22, cz-0.38);
+  scene.add(bcush);
+
+  // Armrests
+  for (const ax of [-0.58, 0.58]) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.14, 1.1), MAT.fabric);
+    arm.position.set(cx+ax, 0.8, cz-0.1);
+    arm.castShadow = true;
+    scene.add(arm);
+  }
+
+  // Legs (short round)
+  for (const [lx, lz] of [[-0.52,-0.52],[-0.52,0.52],[0.52,-0.52],[0.52,0.52]]) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.38, 8), MAT.wood);
+    leg.position.set(cx+lx, 0.19, cz+lz);
+    leg.castShadow = true;
+    scene.add(leg);
+  }
+
+  // Small throw pillow on chair
+  const pillow = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.18, 0.42), MAT.fabricB);
+  pillow.position.set(cx+0.28, 0.96, cz-0.05);
+  pillow.rotation.y = 0.3;
+  scene.add(pillow);
+
+  // Tight footprint: seat is 1.3×1.3 (±0.65), back panel adds ~0.12 behind
+  OBSTACLES.push({ x0: cx-0.65, x1: cx+0.65, z0: cz-0.65, z1: cz+0.65 });
+}
+
+// ════════════════════════════════════════════════════════
+// SMALL SIDE TABLE (next to chair)
+// ════════════════════════════════════════════════════════
+{
+  const tx = -3.2, tz = -3.6;  // beside the chair (right side), clear of window path
+
+  // Tabletop
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.06, 20), MAT.woodLt);
+  top.position.set(tx, 0.78, tz);
+  top.castShadow = top.receiveShadow = true;
+  scene.add(top);
+
+  // Stem
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 0.72, 10), MAT.wood);
+  stem.position.set(tx, 0.42, tz);
+  scene.add(stem);
+
+  // Base disk
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.04, 16), MAT.wood);
+  base.position.set(tx, 0.06, tz);
+  scene.add(base);
+
+  // Small table lamp
+  const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.22, 12), MAT.cream);
+  lampBase.position.set(tx, 0.92, tz);
+  scene.add(lampBase);
+  const lampShade = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.24, 0.24, 16), MAT.lampShd);
+  lampShade.position.set(tx, 1.2, tz);
+  scene.add(lampShade);
+
+  // Books (a small stack on the table)
+  const bookColors = [0xc4a888, 0x98a8b0, 0xb8a0a0];
+  let bx = tx - 0.12;
+  bookColors.forEach((c, i) => {
+    const bk = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.04+i*0.01, 0.16),
+      new THREE.MeshStandardMaterial({ color: c, roughness: 0.9 }));
+    bk.position.set(bx, 0.84 + i*0.04, tz + 0.06);
+    bk.rotation.y = (i-1)*0.1;
+    scene.add(bk);
+  });
+
+  // Pedestal only — tabletop overhangs but player can walk beneath it
+  OBSTACLES.push({ x0: tx-0.24, x1: tx+0.24, z0: tz-0.24, z1: tz+0.24 });
+}
+
+// ════════════════════════════════════════════════════════
+// HAMSTER ENCLOSURE  (right side, against wall)
+// ════════════════════════════════════════════════════════
+// Hidden until setup is done
+const cageRoot = new THREE.Group();
+cageRoot.visible = false;
+scene.add(cageRoot);
+
+const ENC = { x: 3.4, z: -2.0, w: 4.2, d: 2.2, h: 2.0, standH: 0.9 };
+
+// ── Wooden cabinet / stand ────────────────────────────
+{
+  // Cabinet body
+  const cab = new THREE.Mesh(new THREE.BoxGeometry(ENC.w, ENC.standH, ENC.d), MAT.woodLt);
+  cab.position.set(ENC.x, ENC.standH/2, ENC.z);
+  cab.castShadow = cab.receiveShadow = true;
+  cageRoot.add(cab);
+
+  // Cabinet face panel (slightly lighter)
+  const face = new THREE.Mesh(new THREE.BoxGeometry(ENC.w-0.1, ENC.standH-0.1, 0.04),
+    new THREE.MeshStandardMaterial({ color: 0xc89a6a, roughness: 0.8 }));
+  face.position.set(ENC.x, ENC.standH/2, ENC.z + ENC.d/2 + 0.02);
+  cageRoot.add(face);
+
+  // Cabinet feet
+  for (const [fx, fz] of [[-ENC.w/2+0.15, -ENC.d/2+0.12],[ENC.w/2-0.15,-ENC.d/2+0.12],
+                            [-ENC.w/2+0.15, ENC.d/2-0.12],[ENC.w/2-0.15, ENC.d/2-0.12]]) {
+    const ft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.08, 8), MAT.wood);
+    ft.position.set(ENC.x+fx, 0.04, ENC.z+fz);
+    cageRoot.add(ft);
+  }
+
+  // Collision for cabinet footprint — inset by PLAYER_R so the effective wall
+  // lands exactly at the cabinet face (player can walk right up to the glass)
+  OBSTACLES.push({ x0: ENC.x-ENC.w/2+PLAYER_R, x1: ENC.x+ENC.w/2-PLAYER_R,
+                   z0: ENC.z-ENC.d/2+PLAYER_R, z1: ENC.z+ENC.d/2-PLAYER_R });
+}
+
+// ── Glass tank ────────────────────────────────────────
+const TANK = {
+  hw: ENC.w/2 - 0.05,
+  hd: ENC.d/2 - 0.05,
+  h:  ENC.h,
+  fw: 0.1,
+  y:  ENC.standH,
+};
+const tankY0 = TANK.y;  // base of tank
+
+// Glass panels
+function addGlassPanel(w, h, x, y, z, ry=0) {
+  const p = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.06), MAT.glass);
+  p.position.set(x, y, z); p.rotation.y = ry;
+  cageRoot.add(p);
+}
+addGlassPanel(TANK.hw*2, TANK.h, ENC.x, tankY0+TANK.h/2,  ENC.z+TANK.hd);       // front
+addGlassPanel(TANK.hw*2, TANK.h, ENC.x, tankY0+TANK.h/2,  ENC.z-TANK.hd);       // back
+addGlassPanel(TANK.hd*2, TANK.h, ENC.x-TANK.hw, tankY0+TANK.h/2, ENC.z, Math.PI/2);  // left
+addGlassPanel(TANK.hd*2, TANK.h, ENC.x+TANK.hw, tankY0+TANK.h/2, ENC.z, Math.PI/2);  // right
+
+// Glass bottom
+const gBot = new THREE.Mesh(new THREE.BoxGeometry(TANK.hw*2, 0.06, TANK.hd*2), MAT.glass);
+gBot.position.set(ENC.x, tankY0+0.03, ENC.z);
+cageRoot.add(gBot);
+
+// Frame corner posts
+const postH = TANK.h + 0.06;
+for (const [sx, sz] of [[1,1],[1,-1],[-1,1],[-1,-1]]) {
+  const post = new THREE.Mesh(new THREE.BoxGeometry(TANK.fw, postH, TANK.fw), MAT.frame);
+  post.position.set(ENC.x + sx*TANK.hw, tankY0+postH/2, ENC.z + sz*TANK.hd);
+  cageRoot.add(post);
+}
+// Bottom + top rails
+for (const ry of [tankY0+TANK.fw/2, tankY0+TANK.h-TANK.fw/2]) {
+  for (const sz of [TANK.hd, -TANK.hd]) {
+    const r = new THREE.Mesh(new THREE.BoxGeometry(TANK.hw*2-TANK.fw*2, TANK.fw, TANK.fw), MAT.frame);
+    r.position.set(ENC.x, ry, ENC.z+sz); cageRoot.add(r);
+  }
+  for (const sx of [TANK.hw, -TANK.hw]) {
+    const r = new THREE.Mesh(new THREE.BoxGeometry(TANK.fw, TANK.fw, TANK.hd*2-TANK.fw*2), MAT.frame);
+    r.position.set(ENC.x+sx, ry, ENC.z); cageRoot.add(r);
+  }
+}
+
+// Screen mesh lid
+{
+  const lidY = tankY0 + TANK.h;
+  const sm = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness:0.3, metalness:0.75 });
+  const nx = Math.round((TANK.hd*2) / 0.55);
+  for (let i = 0; i <= nx; i++) {
+    const z = ENC.z - TANK.hd + i*(TANK.hd*2/nx);
+    const g = new THREE.CylinderGeometry(0.018, 0.018, TANK.hw*2-TANK.fw*2, 5);
+    g.rotateZ(Math.PI/2);
+    const m = new THREE.Mesh(g, sm);
+    m.position.set(ENC.x, lidY, z); cageRoot.add(m);
+  }
+  const nz = Math.round((TANK.hw*2) / 0.55);
+  for (let i = 0; i <= nz; i++) {
+    const x = ENC.x - TANK.hw + i*(TANK.hw*2/nz);
+    const g = new THREE.CylinderGeometry(0.018, 0.018, TANK.hd*2-TANK.fw*2, 5);
+    g.rotateX(Math.PI/2);
+    const m = new THREE.Mesh(g, sm);
+    m.position.set(x, lidY, ENC.z); cageRoot.add(m);
+  }
+}
+
+// Bedding inside tank — base + bumpy mounds
+{
+  const bedY0 = tankY0 + 0.06;
+  const baseH = 0.55;
+
+  // Solid base
+  const bedBase = new THREE.Mesh(
+    new THREE.BoxGeometry(TANK.hw*2-0.14, baseH, TANK.hd*2-0.14), MAT.bedding);
+  bedBase.position.set(ENC.x, bedY0+baseH/2, ENC.z);
+  bedBase.receiveShadow = true;
+  cageRoot.add(bedBase);
+
+  // Bumpy mounds — kept well inside the glass walls
+  const BED_TOP  = bedY0 + baseH;
+  const BED_COLS = [0xd4b896, 0xc8a87c, 0xdec8a8, 0xb89870, 0xe8d4b8];
+  const rnd = () => Math.random();
+  const SAFE_X = TANK.hw - 0.42;
+  const SAFE_Z = TANK.hd - 0.42;
+  for (let i = 0; i < 28; i++) {
+    const r  = 0.10 + rnd()*0.20;
+    const sx = 1.0  + rnd()*0.35;
+    const sz = 1.0  + rnd()*0.35;
+    const sy = 0.35 + rnd()*0.22;
+    const mat = new THREE.MeshStandardMaterial({ color: BED_COLS[i%BED_COLS.length], roughness:1.0 });
+    beddingMats.push(mat);          // store for recoloring
+    const mound = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 6), mat);
+    mound.scale.set(sx, sy, sz);
+    mound.rotation.y = rnd()*Math.PI*2;
+    mound.position.set(
+      ENC.x + (rnd()-0.5) * SAFE_X * 2,
+      BED_TOP - r*sy*0.4,
+      ENC.z + (rnd()-0.5) * SAFE_Z * 2
+    );
+    cageRoot.add(mound);
+  }
+}
+
+
+// ════════════════════════════════════════════════════════
+// BOOKSHELF  (left wall)
+// ════════════════════════════════════════════════════════
+{
+  const bsz   = 1.2;          // centre Z
+  const shelves = 3;
+  const shelfW  = 1.8;        // total width along Z
+  const shelfH  = 0.9;        // vertical gap per shelf
+  const shelfD  = 0.30;       // depth protruding from wall (X)
+  const backT   = 0.05;       // back-panel thickness
+  const sideT   = 0.04;       // side-panel thickness
+  const boardT  = 0.04;       // horizontal shelf-board thickness
+  const totalH  = shelfH * shelves + boardT; // total height
+
+  // Back panel — flat against left wall, no rotation needed
+  const bp = new THREE.Mesh(new THREE.BoxGeometry(backT, totalH, shelfW), MAT.woodLt);
+  bp.position.set(-RW + backT/2, totalH/2, bsz);
+  bp.castShadow = bp.receiveShadow = true;
+  scene.add(bp);
+
+  // Side panels — stand at Z extremes, depth along X
+  for (const pz of [bsz - shelfW/2 + sideT/2, bsz + shelfW/2 - sideT/2]) {
+    const sp = new THREE.Mesh(new THREE.BoxGeometry(shelfD, totalH, sideT), MAT.woodLt);
+    sp.position.set(-RW + shelfD/2, totalH/2, pz);
+    sp.castShadow = sp.receiveShadow = true;
+    scene.add(sp);
+  }
+
+  // Horizontal shelf boards — one at the bottom, one between each level
+  const innerW = shelfW - 2*sideT;
+  for (let s = 0; s <= shelves; s++) {
+    const sh = new THREE.Mesh(new THREE.BoxGeometry(shelfD, boardT, innerW), MAT.woodLt);
+    sh.position.set(-RW + shelfD/2, s*shelfH + boardT/2, bsz);
+    sh.castShadow = sh.receiveShadow = true;
+    scene.add(sh);
+  }
+
+  // Books — upright, spaced along Z on each shelf
+  const BOOK_COLS = [0xc4a888, 0x98a8b0, 0xb8a0a0, 0xa8b890, 0xd4c0a8, 0x9090a8, 0xb8988a];
+  const bookDepth = shelfD - 0.06;
+  for (let s = 0; s < shelves; s++) {
+    const floorY = s*shelfH + boardT;
+    let bz = bsz - innerW/2 + 0.02;
+    for (let b = 0; b < 5 + Math.floor(Math.random()*4); b++) {
+      const bw = 0.06 + Math.random()*0.06;
+      const bh = 0.45 + Math.random()*0.30;
+      const book = new THREE.Mesh(
+        new THREE.BoxGeometry(bookDepth, bh, bw),
+        new THREE.MeshStandardMaterial({ color: BOOK_COLS[b%BOOK_COLS.length], roughness:0.88 })
+      );
+      book.position.set(-RW + shelfD/2, floorY + bh/2, bz + bw/2);
+      book.rotation.y = (Math.random()-0.5)*0.08;
+      book.castShadow = true;
+      scene.add(book);
+      bz += bw + 0.01;
+      if (bz > bsz + innerW/2 - 0.08) break;
+    }
+  }
+
+  // Collision footprint
+  OBSTACLES.push({ x0: -RW, x1: -RW + shelfD, z0: bsz - shelfW/2, z1: bsz + shelfW/2 });
+}
+
+// ════════════════════════════════════════════════════════
+// HAMSTER  (Stage 2 — entity + movement)
+// ════════════════════════════════════════════════════════
+
+// BED_TOP = tankY0(0.9) + 0.06 + baseH(0.55) = 1.51
+const HAM_FLOOR = 1.51;
+const HAM_CY    = HAM_FLOOR + 0.064;   // group origin = body vertical centre
+
+// Walkable area inside the tank
+const HAM_X0 = ENC.x - TANK.hw + 0.18, HAM_X1 = ENC.x + TANK.hw - 0.18;
+const HAM_Z0 = ENC.z - TANK.hd + 0.15, HAM_Z1 = ENC.z + TANK.hd - 0.15;
+
+// ── Materials ────────────────────────────────────────────
+const hamMat = {
+  fur:   new THREE.MeshStandardMaterial({ color: 0xcda070, roughness: 0.95 }),
+  belly: new THREE.MeshStandardMaterial({ color: 0xf2e0c4, roughness: 0.95 }),
+  earIn: new THREE.MeshStandardMaterial({ color: 0xf0a898, roughness: 0.95 }),
+  eye:   new THREE.MeshStandardMaterial({ color: 0x0e0808, roughness: 0.12, metalness: 0.55 }),
+  shine: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0,
+           emissive: 0xffffff, emissiveIntensity: 0.3 }),
+  nose:  new THREE.MeshStandardMaterial({ color: 0xe08898, roughness: 0.85 }),
+  paw:   new THREE.MeshStandardMaterial({ color: 0xf0d8b4, roughness: 0.92 }),
+};
+
+// ── Build hamster ────────────────────────────────────────
+const hamGroup   = new THREE.Group();
+const hamHeadGrp = new THREE.Group();
+let   hamBodyRef;
+const hamEarMeshes = [];
+
+// Body
+hamBodyRef = new THREE.Mesh(new THREE.SphereGeometry(0.08, 14, 10), hamMat.fur);
+hamBodyRef.scale.set(1.0, 0.80, 1.12);
+hamBodyRef.castShadow = true;
+hamGroup.add(hamBodyRef);
+
+// Belly patch
+const hamBellyM = new THREE.Mesh(new THREE.SphereGeometry(0.058, 10, 8), hamMat.belly);
+hamBellyM.position.set(0, -0.016, 0.052);
+hamBellyM.scale.set(0.88, 0.65, 0.52);
+hamGroup.add(hamBellyM);
+
+// Head group (rotates independently for look behaviour)
+hamHeadGrp.position.set(0, 0.032, 0.098);
+hamGroup.add(hamHeadGrp);
+
+const hamHeadM = new THREE.Mesh(new THREE.SphereGeometry(0.058, 13, 10), hamMat.fur);
+hamHeadM.castShadow = true;
+hamHeadGrp.add(hamHeadM);
+
+// Chubby cheek pouches
+const hamCheeks = [];
+for (const sx of [-1, 1]) {
+  const ck = new THREE.Mesh(new THREE.SphereGeometry(0.038, 10, 8), hamMat.fur);
+  ck.position.set(sx * 0.053, -0.008, 0.018);
+  ck.scale.set(1, 0.82, 0.78);
+  hamHeadGrp.add(ck);
+  hamCheeks.push(ck);
+}
+
+// Ears
+for (let i = 0; i < 2; i++) {
+  const sx = i === 0 ? -1 : 1;
+  const ear = new THREE.Mesh(new THREE.SphereGeometry(0.026, 9, 8), hamMat.fur);
+  ear.position.set(sx * 0.048, 0.052, -0.012);
+  ear.scale.set(1, 1.25, 0.42);
+  hamHeadGrp.add(ear);
+  hamEarMeshes.push(ear);
+
+  const earIn = new THREE.Mesh(new THREE.SphereGeometry(0.016, 8, 7), hamMat.earIn);
+  earIn.position.set(sx * 0.048, 0.053, 0.000);
+  earIn.scale.set(0.60, 0.85, 0.26);
+  hamHeadGrp.add(earIn);
+}
+
+// Eyes + shine highlights
+for (const sx of [-1, 1]) {
+  const eye = new THREE.Mesh(new THREE.SphereGeometry(0.010, 9, 7), hamMat.eye);
+  eye.position.set(sx * 0.034, 0.016, 0.052);
+  hamHeadGrp.add(eye);
+
+  const shine = new THREE.Mesh(new THREE.SphereGeometry(0.004, 6, 5), hamMat.shine);
+  shine.position.set(sx * 0.034 + sx * 0.003, 0.020, 0.061);
+  hamHeadGrp.add(shine);
+}
+
+// Nose
+const hamNoseM = new THREE.Mesh(new THREE.SphereGeometry(0.008, 8, 6), hamMat.nose);
+hamNoseM.position.set(0, 0.003, 0.058);
+hamNoseM.scale.set(1.3, 0.80, 0.72);
+hamHeadGrp.add(hamNoseM);
+
+// Paws (front + back) — stored for animation
+const [hamPawFL, hamPawFR, hamPawBL, hamPawBR] = [
+  [-0.046,  0.060, 0.52, 1.05],  // front L
+  [ 0.046,  0.060, 0.52, 1.05],  // front R
+  [-0.050, -0.055, 0.45, 1.15],  // back L
+  [ 0.050, -0.055, 0.45, 1.15],  // back R
+].map(([px, pz, scY, scZ]) => {
+  const paw = new THREE.Mesh(new THREE.SphereGeometry(0.016, 7, 6), hamMat.paw);
+  paw.position.set(px, -0.058, pz);
+  paw.scale.set(0.85, scY, scZ);
+  hamGroup.add(paw);
+  return paw;
+});
+
+// Tiny tail nub
+const hamTailM = new THREE.Mesh(new THREE.SphereGeometry(0.013, 7, 6), hamMat.belly);
+hamTailM.position.set(0, -0.015, -0.100);
+hamGroup.add(hamTailM);
+
+hamGroup.position.set(ENC.x, HAM_CY, ENC.z);
+hamGroup.visible = false;
+scene.add(hamGroup);
+
+// ── Behaviour AI  (Stage 3) ──────────────────────────────
+
+// Hidden variables
+const hamState = { trust: 0, mood: 'neutral', passiveTimer: 0, passiveSaveTimer: 0 };
+
+function gainTrust(amount) {
+  hamState.trust = Math.min(100, hamState.trust + amount);
+  upsertActiveProfile({ trust: +hamState.trust.toFixed(2) });
+}
+
+// Behaviour identifiers
+const B = {
+  IDLE: 'idle', EXPLORE: 'explore', GLASS_RUB: 'glass_rub',
+  APPROACH: 'approach', STAY_NEAR: 'stay_near',
+  HIDE: 'hide', INTERACT: 'interact', BURROW: 'burrow',
+  // Accessory interactions
+  USE_WHEEL: 'use_wheel', EAT: 'eat', DRINK: 'drink',
+  SAND_BATH: 'sand_bath', CLIMB: 'climb',
+};
+
+// Zone memory — track last N visited zones to avoid repetition
+const zoneMemory = [];
+function posToZone(x, z) {
+  const qx = Math.min(2, Math.max(0, Math.floor((x - HAM_X0) / (HAM_X1 - HAM_X0) * 3)));
+  const qz = Math.min(2, Math.max(0, Math.floor((z - HAM_Z0) / (HAM_Z1 - HAM_Z0) * 3)));
+  return qx * 3 + qz;
+}
+function rememberZone(x, z) {
+  const id = posToZone(x, z);
+  if (zoneMemory[zoneMemory.length - 1] !== id) {
+    zoneMemory.push(id);
+    if (zoneMemory.length > 3) zoneMemory.shift();
+  }
+}
+
+// Mood bias table — Stage 4 will wire these to the daily input
+function getMoodBias(mood) {
+  return ({
+    neutral:     {},
+    calm:        { idle: 8,  explore: 3,  hide: -5 },
+    happy:       { explore: 10, approach: 6, stay_near: 4, idle: -4 },
+    tired:       { idle: 15, burrow: 8,  explore: -8, approach: -6 },
+    anxious:     { hide: 15, burrow: 10, glass_rub: 8, approach: -10, stay_near: -8 },
+    overwhelmed: { hide: 20, burrow: 15, idle: 8, approach: -15, explore: -10 },
+    nervous:     { hide: 10, glass_rub: 6, approach: -8, idle: 5 },
+    excited:     { explore: 12, glass_rub: 8, interact: 8, approach: 4, idle: -8 },
+    sad:         { idle: 10, burrow: 8, hide: 5, approach: -5 },
+  })[mood] || {};
+}
+
+// Score every behaviour:  baseWeight + trustModifier + moodBias + randomness
+// Accessory behaviours only score > 0 when the accessory is installed
+function scoreBehaviours() {
+  const T = hamState.trust;
+  const bias = getMoodBias(hamState.mood);
+  const R = () => Math.random() * 8;
+  const has = k => accMeshes[k] !== null;
+  return {
+    [B.IDLE]:      28 + T * -0.10 + (bias.idle      ?? 0) + R(),
+    [B.EXPLORE]:   22 + T *  0.15 + (bias.explore   ?? 0) + R(),
+    [B.HIDE]:      18 + T * -0.25 + (bias.hide      ?? 0) + R(),
+    [B.GLASS_RUB]: 14 + T *  0.05 + (bias.glass_rub ?? 0) + R(),
+    [B.BURROW]:    10 + T * -0.12 + (bias.burrow    ?? 0) + R(),
+    [B.INTERACT]:   8 + T *  0.10 + (bias.interact  ?? 0) + R(),
+    [B.APPROACH]:   2 + T *  0.50 + (bias.approach  ?? 0) + R(),
+    [B.STAY_NEAR]:  2 + T *  0.40 + (bias.stay_near ?? 0) + R(),
+    // Accessory interactions — zero weight if not installed
+    [B.USE_WHEEL]: has('wheel')    ? 14 + T *  0.12 + (bias.use_wheel ?? 0) + R() : 0,
+    [B.EAT]:       has('food')     ? 13 + T *  0.08 + (bias.eat       ?? 0) + R() : 0,
+    [B.DRINK]:     has('water')    ? 11 + T *  0.06 + (bias.drink     ?? 0) + R() : 0,
+    [B.SAND_BATH]: has('sandbath') ?  9 + T *  0.10 + (bias.sand_bath ?? 0) + R() : 0,
+    [B.CLIMB]:     has('branch')   ?  8 + T *  0.10 + (bias.climb     ?? 0) + R() : 0,
+  };
+}
+
+// Weighted-probability pick
+function pickBehaviour(scores) {
+  const entries = Object.entries(scores);
+  const total   = entries.reduce((s, [, v]) => s + Math.max(0, v), 0);
+  let roll = Math.random() * total;
+  for (const [b, v] of entries) { roll -= Math.max(0, v); if (roll <= 0) return b; }
+  return B.IDLE;
+}
+
+// ── Execution state ──────────────────────────────────────
+const hamAI = {
+  behavior: B.IDLE,
+  phase: 0,           // sub-phase within a behavior
+  bTimer: 0,          // time in current behavior
+  bDuration: 3,       // max seconds before re-evaluation
+  tx: ENC.x, tz: ENC.z,
+  moving: false,
+  faceY: 0,
+  walkCycle: 0,
+  subTimer: 0,
+  subTargetX: 0, subTargetZ: 0,  // glass-rub wall anchor
+  microOffX: 0, microOffZ: 0, microTimer: 0,
+  headTarget: 0, headCurrent: 0, headTimer: 0,
+  earTimers: [Math.random() * 3, Math.random() * 3],
+  groomTimer: 0,
+};
+
+// ── Animation helpers ────────────────────────────────────
+const _lp = (a, b, t) => a + (b - a) * Math.min(1, t);  // lerp
+
+function lerpPawRest(dt, spd = 5) {
+  const T = Math.min(1, dt * spd);
+  hamPawFL.position.x += (-0.046 - hamPawFL.position.x) * T;
+  hamPawFL.position.y += (-0.058 - hamPawFL.position.y) * T;
+  hamPawFL.position.z += ( 0.060 - hamPawFL.position.z) * T;
+  hamPawFR.position.x += ( 0.046 - hamPawFR.position.x) * T;
+  hamPawFR.position.y += (-0.058 - hamPawFR.position.y) * T;
+  hamPawFR.position.z += ( 0.060 - hamPawFR.position.z) * T;
+  hamPawBL.position.y += (-0.058 - hamPawBL.position.y) * Math.min(1, dt * 4);
+  hamPawBR.position.y += (-0.058 - hamPawBR.position.y) * Math.min(1, dt * 4);
+}
+
+function resetHamParts() {
+  hamGroup.rotation.x = 0;
+  hamGroup.rotation.z = 0;
+  hamEarMeshes[0].rotation.z = 0;
+  hamEarMeshes[1].rotation.z = 0;
+  hamCheeks[0].scale.set(1, 0.82, 0.78);
+  hamCheeks[1].scale.set(1, 0.82, 0.78);
+  hamPawFL.position.set(-0.046, -0.058,  0.060);
+  hamPawFR.position.set( 0.046, -0.058,  0.060);
+  hamPawBL.position.set(-0.050, -0.058, -0.055);
+  hamPawBR.position.set( 0.050, -0.058, -0.055);
+  hamTailM.position.y = -0.015;
+  hamBodyRef.scale.y = 0.80;
+  hamAI.groomTimer = 0;
+}
+
+// ── Behavior startup ─────────────────────────────────────
+function startBehavior(b) {
+  resetHamParts();
+  hamAI.behavior = b;  hamAI.phase = 0;  hamAI.bTimer = 0;  hamAI.moving = false;
+  const rx = () => HAM_X0 + Math.random() * (HAM_X1 - HAM_X0);
+  const rz = () => HAM_Z0 + Math.random() * (HAM_Z1 - HAM_Z0);
+
+  switch (b) {
+    case B.IDLE:
+      hamAI.bDuration = 2.0 + Math.random() * 3.5;
+      break;
+
+    case B.EXPLORE: {
+      // Avoid recently visited zones
+      let tx, tz, attempts = 0;
+      do { tx = rx(); tz = rz(); attempts++; }
+      while (zoneMemory.includes(posToZone(tx, tz)) && attempts < 8);
+      hamAI.tx = tx;  hamAI.tz = tz;  hamAI.moving = true;  hamAI.bDuration = 20;
+      break;
+    }
+
+    case B.HIDE:
+      if (accMeshes.hideout) {
+        // Run to the hideout
+        hamAI.tx = accMeshes.hideout.position.x;
+        hamAI.tz = accMeshes.hideout.position.z;
+      } else {
+        // Safe corner — back wall, left side
+        hamAI.tx = HAM_X0 + 0.08;  hamAI.tz = HAM_Z0 + 0.08;
+      }
+      hamAI.moving = true;  hamAI.bDuration = 20;
+      break;
+
+    case B.GLASS_RUB: {
+      // Pick a random glass face and walk close to it
+      const side = Math.floor(Math.random() * 4);
+      const pts = [
+        [rx(), ENC.z + TANK.hd - 0.10],   // front glass
+        [rx(), ENC.z - TANK.hd + 0.10],   // back glass
+        [ENC.x - TANK.hw + 0.10, rz()],   // left glass
+        [ENC.x + TANK.hw - 0.10, rz()],   // right glass
+      ];
+      [hamAI.tx, hamAI.tz] = pts[side];
+      hamAI.subTargetX = hamAI.tx;  hamAI.subTargetZ = hamAI.tz;
+      hamAI.moving = true;  hamAI.bDuration = 20;
+      break;
+    }
+
+    case B.BURROW: {
+      const corners = [
+        [HAM_X0+0.08, HAM_Z0+0.08], [HAM_X0+0.08, HAM_Z1-0.08],
+        [HAM_X1-0.08, HAM_Z0+0.08], [HAM_X1-0.08, HAM_Z1-0.08],
+      ];
+      [hamAI.tx, hamAI.tz] = corners[Math.floor(Math.random() * 4)];
+      hamAI.moving = true;  hamAI.bDuration = 20;
+      break;
+    }
+
+    case B.INTERACT:
+      hamAI.tx = ENC.x + (Math.random() - 0.5) * 0.8;
+      hamAI.tz = ENC.z + (Math.random() - 0.5) * 0.4;
+      hamAI.moving = true;  hamAI.bDuration = 20;
+      break;
+
+    case B.APPROACH: {
+      const p = controls.getObject().position;
+      hamAI.tx = Math.min(HAM_X1-0.1, Math.max(HAM_X0+0.1, p.x));
+      hamAI.tz = Math.min(HAM_Z1-0.1, Math.max(HAM_Z0+0.1, p.z));
+      hamAI.moving = true;  hamAI.bDuration = 15;
+      break;
+    }
+
+    case B.STAY_NEAR:
+      hamAI.bDuration = 3.0 + Math.random() * 3.0;
+      break;
+
+    case B.USE_WHEEL:
+      hamAI.tx = ENC.x - 0.75;  hamAI.tz = ENC.z - 0.25;
+      hamAI.moving = true;  hamAI.bDuration = 20;
+      break;
+
+    case B.EAT:
+      hamAI.tx = ENC.x + 0.25;  hamAI.tz = ENC.z - 0.58;
+      hamAI.moving = true;  hamAI.bDuration = 20;
+      break;
+
+    case B.DRINK:
+      hamAI.tx = ENC.x - TANK.hw + 0.22;  hamAI.tz = ENC.z - 0.18;
+      hamAI.moving = true;  hamAI.bDuration = 20;
+      break;
+
+    case B.SAND_BATH:
+      hamAI.tx = ENC.x - 0.60;  hamAI.tz = ENC.z + 0.52;
+      hamAI.moving = true;  hamAI.bDuration = 20;
+      break;
+
+    case B.CLIMB:
+      hamAI.tx = ENC.x + 0.72;  hamAI.tz = ENC.z - 0.42;
+      hamAI.moving = true;  hamAI.bDuration = 20;
+      break;
+  }
+}
+
+// ── Move helper ──────────────────────────────────────────
+function moveToward(dt, tx, tz) {
+  const dx = tx - hamGroup.position.x;
+  const dz = tz - hamGroup.position.z;
+  const dist = Math.sqrt(dx * dx + dz * dz);
+  if (dist < 0.04) { hamGroup.position.y = HAM_CY; return true; }
+
+  // Step (with occasional hesitation)
+  if (Math.random() > dt * 0.15) {
+    const step = Math.min(0.28 * dt, dist);
+    hamGroup.position.x += (dx / dist) * step;
+    hamGroup.position.z += (dz / dist) * step;
+  }
+  // Smooth facing
+  let da = Math.atan2(dx, dz) - hamAI.faceY;
+  while (da >  Math.PI) da -= Math.PI * 2;
+  while (da < -Math.PI) da += Math.PI * 2;
+  hamAI.faceY += da * Math.min(1, dt * 8);
+  hamGroup.rotation.y = hamAI.faceY;
+  // Walk bob
+  hamAI.walkCycle += dt * 7;
+  hamGroup.position.y = HAM_CY + Math.abs(Math.sin(hamAI.walkCycle)) * 0.009;
+  return false;
+}
+
+// ── Main update ──────────────────────────────────────────
+function updateHamster(t, dt) {
+  const ai = hamAI;
+  ai.bTimer += dt;
+
+  // Head look
+  ai.headTimer -= dt;
+  if (ai.headTimer <= 0) {
+    ai.headTarget = (Math.random() - 0.5) * 1.4;
+    ai.headTimer  = 1.0 + Math.random() * 2.8;
+  }
+  ai.headCurrent += (ai.headTarget - ai.headCurrent) * Math.min(1, dt * 3.2);
+  // STAY_NEAR: override head to watch player
+  if (ai.behavior === B.STAY_NEAR) {
+    const p = controls.getObject().position;
+    const want = Math.atan2(p.x - hamGroup.position.x, p.z - hamGroup.position.z) - ai.faceY;
+    ai.headCurrent += (want - ai.headCurrent) * Math.min(1, dt * 2.5);
+  }
+  hamHeadGrp.rotation.y = ai.headCurrent;
+  // BURROW phase 1: override head X for digging animation
+  if (ai.behavior !== B.BURROW || ai.phase !== 1)
+    hamHeadGrp.rotation.x = Math.sin(t * 0.65) * 0.034;
+
+  // Ear twitches
+  for (let i = 0; i < 2; i++) {
+    ai.earTimers[i] -= dt;
+    if (ai.earTimers[i] <= 0) ai.earTimers[i] = 1.8 + Math.random() * 4.5;
+    const tw = ai.earTimers[i] < 0.20
+      ? Math.sin(ai.earTimers[i] * Math.PI / 0.20) * 0.25 : 0;
+    hamEarMeshes[i].rotation.z = (i === 0 ? 1 : -1) * tw;
+  }
+
+  // Breathing
+  hamBodyRef.scale.y = 0.80 * (1 + Math.sin(t * 1.85) * 0.030);
+
+  // Micro-movement variation when still
+  ai.microTimer -= dt;
+  if (ai.microTimer <= 0) {
+    ai.microOffX = (Math.random() - 0.5) * 0.010;
+    ai.microOffZ = (Math.random() - 0.5) * 0.010;
+    ai.microTimer = 0.5 + Math.random() * 0.9;
+  }
+  if (!ai.moving) {
+    hamGroup.position.x = Math.min(HAM_X1, Math.max(HAM_X0,
+      hamGroup.position.x + ai.microOffX * dt * 1.5));
+    hamGroup.position.z = Math.min(HAM_Z1, Math.max(HAM_Z0,
+      hamGroup.position.z + ai.microOffZ * dt * 1.5));
+  }
+
+  // Re-evaluate when duration exceeded
+  if (ai.bTimer >= ai.bDuration) {
+    hamHeadGrp.rotation.x = 0;
+    rememberZone(hamGroup.position.x, hamGroup.position.z);
+    startBehavior(pickBehaviour(scoreBehaviours()));
+    return;
+  }
+
+  // Execute current behavior
+  switch (ai.behavior) {
+
+    // ── IDLE: grooming ───────────────────────────────────
+    case B.IDLE: {
+      hamGroup.position.y = HAM_CY;
+      ai.groomTimer += dt;
+      const GROOM_START = 0.8, GROOM_END = ai.bDuration - 0.55;
+      if (ai.groomTimer < GROOM_START) {
+        // Settle — paws drift back
+        lerpPawRest(dt, 4);
+        hamGroup.rotation.x += (0 - hamGroup.rotation.x) * Math.min(1, dt * 5);
+      } else if (ai.groomTimer < GROOM_END) {
+        const gT = ai.groomTimer - GROOM_START;
+        const rT = Math.min(1, gT / 0.35);
+        // Front paws raise toward face
+        hamPawFL.position.y = _lp(-0.058, -0.016, rT);
+        hamPawFL.position.z = _lp( 0.060,  0.082, rT);
+        hamPawFR.position.y = _lp(-0.058, -0.016, rT);
+        hamPawFR.position.z = _lp( 0.060,  0.082, rT);
+        // Head cleaning bob — fast forward-back scrub
+        hamHeadGrp.rotation.x = Math.sin(gT * 5.8) * 0.13 - 0.06;
+        // Lean forward while grooming
+        hamGroup.rotation.x = _lp(0, -0.07, rT);
+        // Back paws rest
+        lerpPawRest(dt, 3);
+      } else {
+        // Finish — lower paws
+        lerpPawRest(dt, 4);
+        hamGroup.rotation.x += (0 - hamGroup.rotation.x) * Math.min(1, dt * 5);
+      }
+      break;
+    }
+
+    // ── STAY_NEAR: curious sit-up, watching player ───────
+    case B.STAY_NEAR: {
+      hamGroup.position.y = HAM_CY + Math.sin(t * 0.9) * 0.003;
+      const sitT = Math.min(1, ai.bTimer / 0.55);
+      // Front paws tuck up
+      hamPawFL.position.y = _lp(-0.058, -0.024, sitT);
+      hamPawFL.position.z = _lp( 0.060,  0.044, sitT);
+      hamPawFR.position.y = _lp(-0.058, -0.024, sitT);
+      hamPawFR.position.z = _lp( 0.060,  0.044, sitT);
+      // Stand a little taller
+      hamBodyRef.scale.y = _lp(0.80, 0.93, sitT) * (1 + Math.sin(t * 1.85) * 0.018);
+      break;
+    }
+
+    // ── EXPLORE: walk, sniff around on arrival ───────────
+    case B.EXPLORE:
+      if (ai.moving) {
+        lerpPawRest(dt, 6);
+        if (moveToward(dt, ai.tx, ai.tz)) {
+          ai.moving = false;
+          rememberZone(hamGroup.position.x, hamGroup.position.z);
+          ai.bDuration = ai.bTimer + 1.0 + Math.random() * 2.5;
+        }
+      } else {
+        // Arrived — sniff around: head sweeps left/right slowly
+        hamGroup.position.y = HAM_CY;
+        lerpPawRest(dt, 4);
+        hamHeadGrp.rotation.y = ai.headCurrent + Math.sin(ai.bTimer * 1.4) * 0.55;
+        hamHeadGrp.rotation.x = Math.sin(ai.bTimer * 2.1) * 0.08;
+      }
+      break;
+
+    // ── APPROACH / INTERACT: just walk, then sit still ──
+    case B.INTERACT:
+    case B.APPROACH:
+      lerpPawRest(dt, 6);
+      if (ai.moving && moveToward(dt, ai.tx, ai.tz)) {
+        ai.moving = false;
+        rememberZone(hamGroup.position.x, hamGroup.position.z);
+        ai.bDuration = ai.bTimer + 1.0 + Math.random() * 2.5;
+      }
+      if (!ai.moving) hamGroup.position.y = HAM_CY;
+      break;
+
+    // ── HIDE: run to hideout, then crouch flat ───────────
+    case B.HIDE:
+      if (ai.phase === 0) {
+        lerpPawRest(dt, 6);
+        if (moveToward(dt, ai.tx, ai.tz)) {
+          ai.phase = 1;  ai.subTimer = 0;
+          ai.bDuration = ai.bTimer + 3.5 + Math.random() * 4.0;
+        }
+      } else {
+        ai.subTimer += dt;
+        hamGroup.position.y = HAM_CY;
+        const crT = Math.min(1, ai.subTimer / 0.55);
+        // Body flattens
+        hamBodyRef.scale.y = _lp(0.80, 0.52, crT) * (1 + Math.sin(t * 1.85) * 0.008);
+        // Ears pin back
+        hamEarMeshes[0].rotation.z = _lp(0, -0.50, crT);
+        hamEarMeshes[1].rotation.z = _lp(0,  0.50, crT);
+        // Whole body presses down and leans forward
+        hamGroup.rotation.x = _lp(0, 0.20, crT);
+        hamPawFL.position.y = _lp(-0.058, -0.068, crT);
+        hamPawFR.position.y = _lp(-0.058, -0.068, crT);
+      }
+      break;
+
+    // ── GLASS_RUB: walk to wall, sniff + rub ────────────
+    case B.GLASS_RUB:
+      if (ai.phase === 0) {
+        lerpPawRest(dt, 6);
+        if (moveToward(dt, ai.tx, ai.tz)) {
+          ai.phase = 1;  ai.subTimer = 0;
+          ai.bDuration = ai.bTimer + 1.5 + Math.random() * 1.5;
+        }
+      } else {
+        ai.subTimer += dt;
+        const rubAmp = 0.020;
+        const onZWall = Math.abs(ai.subTargetZ - (ENC.z + TANK.hd)) < 0.25 ||
+                        Math.abs(ai.subTargetZ - (ENC.z - TANK.hd)) < 0.25;
+        if (onZWall)
+          hamGroup.position.x = ai.subTargetX + Math.sin(ai.subTimer * 11) * rubAmp;
+        else
+          hamGroup.position.z = ai.subTargetZ + Math.sin(ai.subTimer * 11) * rubAmp;
+        // Sniff: head bobs toward glass and back
+        hamHeadGrp.rotation.x = Math.sin(ai.subTimer * 7.5) * 0.12 - 0.09;
+        // Front paws press against glass
+        hamPawFL.position.y = _lp(hamPawFL.position.y, -0.038, Math.min(1, dt * 7));
+        hamPawFR.position.y = _lp(hamPawFR.position.y, -0.038, Math.min(1, dt * 7));
+        hamPawFL.position.z = _lp(hamPawFL.position.z,  0.074, Math.min(1, dt * 7));
+        hamPawFR.position.z = _lp(hamPawFR.position.z,  0.074, Math.min(1, dt * 7));
+      }
+      break;
+
+    // ── BURROW: walk to corner, dig ──────────────────────
+    case B.BURROW:
+      if (ai.phase === 0) {
+        lerpPawRest(dt, 6);
+        if (moveToward(dt, ai.tx, ai.tz)) {
+          ai.phase = 1;  ai.subTimer = 0;
+          ai.bDuration = ai.bTimer + 2.0 + Math.random() * 2.5;
+        }
+      } else {
+        ai.subTimer += dt;
+        // Head digs — rapid nod
+        hamHeadGrp.rotation.x = Math.sin(ai.subTimer * 28) * 0.18 + 0.12;
+        // Body rocks forward with each dig stroke
+        hamGroup.rotation.x = Math.sin(ai.subTimer * 14) * 0.07 + 0.10;
+        // Body sinks as if pushing into bedding
+        hamGroup.position.y = HAM_CY - Math.abs(Math.sin(ai.subTimer * 14)) * 0.009;
+        // Front paws press into ground alternately
+        hamPawFL.position.y = -0.060 - Math.abs(Math.sin(ai.subTimer * 14 + 0.4)) * 0.012;
+        hamPawFR.position.y = -0.060 - Math.abs(Math.sin(ai.subTimer * 14 - 0.4)) * 0.012;
+        hamPawFL.position.z = 0.074;
+        hamPawFR.position.z = 0.074;
+      }
+      break;
+
+    // ── USE_WHEEL: run on wheel ───────────────────────────
+    case B.USE_WHEEL:
+      if (ai.phase === 0) {
+        lerpPawRest(dt, 6);
+        if (moveToward(dt, ai.tx, ai.tz)) {
+          ai.phase = 1;  ai.subTimer = 0;
+          ai.bDuration = ai.bTimer + 4.0 + Math.random() * 5.0;
+          ai.faceY = (accMeshes.wheel?.rotation.y ?? 0) + Math.PI / 2;
+          hamGroup.rotation.y = ai.faceY;
+        }
+      } else {
+        ai.subTimer += dt;
+        if (wheelSpinner) wheelSpinner.rotation.z -= dt * 4.8;
+        // Running bob
+        hamGroup.position.y = HAM_CY + Math.abs(Math.sin(ai.subTimer * 10)) * 0.010;
+        // Forward lean while running
+        hamGroup.rotation.x = _lp(hamGroup.rotation.x, -0.13, Math.min(1, dt * 4));
+        // Front paws on wheel — alternate stride
+        hamPawFL.position.y = -0.042 + Math.sin(ai.subTimer * 10       ) * 0.013;
+        hamPawFR.position.y = -0.042 + Math.sin(ai.subTimer * 10 + Math.PI) * 0.013;
+        hamPawFL.position.z = 0.070;
+        hamPawFR.position.z = 0.070;
+        // Back paws stride too
+        hamPawBL.position.y = -0.050 + Math.sin(ai.subTimer * 10 + Math.PI) * 0.010;
+        hamPawBR.position.y = -0.050 + Math.sin(ai.subTimer * 10       ) * 0.010;
+      }
+      break;
+
+    // ── EAT: walk to bowl, nod + cheek puff ──────────────
+    case B.EAT:
+      if (ai.phase === 0) {
+        lerpPawRest(dt, 6);
+        if (moveToward(dt, ai.tx, ai.tz)) {
+          ai.phase = 1;  ai.subTimer = 0;
+          ai.bDuration = ai.bTimer + 2.5 + Math.random() * 3.0;
+        }
+      } else {
+        ai.subTimer += dt;
+        const eatT = Math.min(1, ai.subTimer / 1.8);
+        // Head dips to bowl repeatedly
+        hamHeadGrp.rotation.x = Math.sin(ai.subTimer * 3.8) * 0.28 + 0.10;
+        hamHeadGrp.rotation.y = ai.headCurrent + Math.sin(ai.subTimer * 8) * 0.035;
+        // Front paws hold bowl area
+        hamPawFL.position.y = _lp(hamPawFL.position.y, -0.044, Math.min(1, dt * 5));
+        hamPawFR.position.y = _lp(hamPawFR.position.y, -0.044, Math.min(1, dt * 5));
+        hamPawFL.position.z = _lp(hamPawFL.position.z,  0.072, Math.min(1, dt * 5));
+        hamPawFR.position.z = _lp(hamPawFR.position.z,  0.072, Math.min(1, dt * 5));
+        // Cheeks puff up as eating progresses
+        const puff = 1 + eatT * 0.38;
+        hamCheeks[0].scale.set(puff, 0.82 * puff, 0.78 * puff);
+        hamCheeks[1].scale.set(puff, 0.82 * puff, 0.78 * puff);
+      }
+      break;
+
+    // ── DRINK: walk to water, tilt head up, lick ─────────
+    case B.DRINK:
+      if (ai.phase === 0) {
+        lerpPawRest(dt, 6);
+        if (moveToward(dt, ai.tx, ai.tz)) {
+          ai.phase = 1;  ai.subTimer = 0;
+          ai.bDuration = ai.bTimer + 1.5 + Math.random() * 2.0;
+        }
+      } else {
+        ai.subTimer += dt;
+        // Head tilts up to reach spout; rapid lick rhythm
+        hamHeadGrp.rotation.x = -0.32 + Math.sin(ai.subTimer * 9.0) * 0.055;
+        // Tail lifts slightly — natural drinking posture
+        hamTailM.position.y = -0.015 + Math.abs(Math.sin(ai.subTimer * 9)) * 0.013;
+        // Front paws press against water source
+        hamPawFL.position.y = _lp(hamPawFL.position.y, -0.040, Math.min(1, dt * 6));
+        hamPawFR.position.y = _lp(hamPawFR.position.y, -0.040, Math.min(1, dt * 6));
+      }
+      break;
+
+    // ── SAND_BATH: roll, shake, paws flail ───────────────
+    case B.SAND_BATH:
+      if (ai.phase === 0) {
+        lerpPawRest(dt, 6);
+        if (moveToward(dt, ai.tx, ai.tz)) {
+          ai.phase = 1;  ai.subTimer = 0;
+          ai.bDuration = ai.bTimer + 3.0 + Math.random() * 3.5;
+        }
+      } else {
+        ai.subTimer += dt;
+        // Body rolls side to side
+        hamGroup.rotation.z = Math.sin(ai.subTimer * 4.2) * 0.30;
+        hamGroup.position.y  = HAM_CY - Math.abs(Math.sin(ai.subTimer * 4.2)) * 0.014;
+        // Head shakes vigorously — sand flying
+        hamHeadGrp.rotation.y = ai.headCurrent + Math.sin(ai.subTimer * 9.8) * 0.24;
+        // Front paws flail up and down alternately
+        hamPawFL.position.y = -0.026 + Math.sin(ai.subTimer * 8.5       ) * 0.030;
+        hamPawFR.position.y = -0.026 + Math.sin(ai.subTimer * 8.5 + Math.PI) * 0.030;
+        // Back paws kick too
+        hamPawBL.position.y = -0.044 + Math.sin(ai.subTimer * 6       ) * 0.014;
+        hamPawBR.position.y = -0.044 + Math.sin(ai.subTimer * 6 + Math.PI) * 0.014;
+      }
+      break;
+
+    // ── CLIMB: scale the branch, front paws reach ────────
+    case B.CLIMB:
+      if (ai.phase === 0) {
+        lerpPawRest(dt, 6);
+        if (moveToward(dt, ai.tx, ai.tz)) {
+          ai.phase = 1;  ai.subTimer = 0;
+          ai.bDuration = ai.bTimer + 3.5 + Math.random() * 2.0;
+        }
+      } else {
+        ai.subTimer += dt;
+        const prog = ai.subTimer / Math.max(0.1, ai.bDuration - ai.bTimer + ai.subTimer);
+        // Rise up the branch then descend
+        hamGroup.position.y = HAM_CY + Math.sin(prog * Math.PI) * 0.07;
+        // Lean forward on the way up, back on the way down
+        hamGroup.rotation.x = -0.20 * Math.sin(prog * Math.PI);
+        // Front paws alternate — reaching/gripping the branch
+        hamPawFL.position.y = -0.028 + Math.sin(ai.subTimer * 7       ) * 0.024;
+        hamPawFR.position.y = -0.028 + Math.sin(ai.subTimer * 7 + Math.PI) * 0.024;
+        hamPawFL.position.z = 0.076;
+        hamPawFR.position.z = 0.076;
+        // Head bob with each climbing step
+        hamHeadGrp.rotation.x = -0.18 + Math.sin(ai.subTimer * 7) * 0.14;
+      }
+      break;
+  }
+}
+
+// Kick off with an initial behaviour
+startBehavior(B.IDLE);
+
+// ════════════════════════════════════════════════════════
+// CUSTOMIZATION SYSTEM
+// ════════════════════════════════════════════════════════
+
+// ── Hamster colour presets ───────────────────────────────
+const HAM_COLOURS = [
+  { id:'golden',    label:'golden',    body:0xc4823a, belly:0xf0d8b0, ear:0xf0a898, eye:0x0e0808, nose:0xe08898 },
+  { id:'white',     label:'white',     body:0xf0ecea, belly:0xfcf8f4, ear:0xf4b8b0, eye:0xcc4444, nose:0xf09898 },
+  { id:'grey',      label:'grey',      body:0x9898a8, belly:0xd8d8e4, ear:0xf0a898, eye:0x0e0808, nose:0xe08898 },
+  { id:'cinnamon',  label:'cinnamon',  body:0xc05828, belly:0xecc090, ear:0xf0a090, eye:0x0e0808, nose:0xe08898 },
+  { id:'black',     label:'black',     body:0x2e2a28, belly:0x706860, ear:0xd09090, eye:0x1a1818, nose:0xe08898 },
+  { id:'cream',     label:'cream',     body:0xe0c898, belly:0xf8ecd8, ear:0xf0a898, eye:0x0e0808, nose:0xe08898 },
+  { id:'chocolate', label:'chocolate', body:0x7a4828, belly:0xc89068, ear:0xe0a090, eye:0x0e0808, nose:0xe08898 },
+  { id:'lilac',     label:'lilac',     body:0xb0a8c0, belly:0xe4e0ec, ear:0xf0b0c0, eye:0x0e0808, nose:0xe08898 },
+  { id:'caramel',   label:'caramel',   body:0xd09050, belly:0xf0dcb0, ear:0xf0a898, eye:0x0e0808, nose:0xe08898 },
+];
+
+// ── Pattern presets ──────────────────────────────────────
+const HAM_PATTERNS = [
+  { id:'solid',   label:'solid' },
+  { id:'piebald', label:'piebald' },   // white patches
+  { id:'banded',  label:'banded' },    // lighter mid-band
+  { id:'spotted', label:'spotted' },   // small white spots on back
+];
+
+// ── Size presets ─────────────────────────────────────────
+const HAM_SIZES = [
+  { id:'petite', label:'petite', scale:0.80 },
+  { id:'medium', label:'medium', scale:1.00 },
+  { id:'chonky', label:'chonky', scale:1.20 },
+];
+
+// ── Bedding themes ───────────────────────────────────────
+const BEDDING_THEMES = [
+  { id:'natural', label:'natural', base:0xc8a878, cols:[0xd4b896,0xc8a87c,0xdec8a8,0xb89870,0xe8d4b8] },
+  { id:'pink',    label:'pink',    base:0xd4909a, cols:[0xe0a8b0,0xd49098,0xecc0c8,0xc88090,0xf0ccd4] },
+  { id:'lavender',label:'lavender',base:0xa8a0c0, cols:[0xb8b0d0,0xa8a0bc,0xd0c8e4,0x9890a8,0xe0d8f0] },
+  { id:'sage',    label:'sage',    base:0x98a890, cols:[0xa8b8a0,0x90a888,0xbcd0b4,0x889880,0xd0e0c8] },
+  { id:'cream',   label:'cream',   base:0xe0d8c8, cols:[0xe8e0d0,0xddd4c0,0xf0e8d8,0xd0c8b4,0xf8f0e4] },
+  { id:'lilac',   label:'lilac',   base:0xc0a8c8, cols:[0xd0b8d8,0xb8a0c0,0xe0c8e8,0xa890b0,0xf0d8f8] },
+];
+
+// ── Pattern extra meshes — stored to remove on re-apply ──
+const patternMeshes = [];
+
+function clearPatternMeshes() {
+  patternMeshes.forEach(m => hamGroup.remove(m));
+  patternMeshes.length = 0;
+}
+
+// ── Apply hamster appearance ─────────────────────────────
+function applyHamsterAppearance(colPreset, patPreset, sizePreset) {
+  // Colours
+  hamMat.fur.color.setHex(colPreset.body);
+  hamMat.belly.color.setHex(colPreset.belly);
+  hamMat.paw.color.setHex(colPreset.belly);
+  hamMat.earIn.color.setHex(colPreset.ear);
+  hamMat.eye.color.setHex(colPreset.eye);
+  hamMat.nose.color.setHex(colPreset.nose);
+
+  // Size
+  hamGroup.scale.setScalar(sizePreset.scale);
+
+  // Pattern overlays
+  clearPatternMeshes();
+  const patMat = new THREE.MeshStandardMaterial({ color: 0xfaf4ee, roughness: 0.95 });
+
+  if (patPreset.id === 'piebald') {
+    for (const [px, py, pz, rx, ry, rz, rs] of [
+      [ 0.04,  0.02, -0.02, 1, 0.28, 0.85,  1],
+      [-0.05, -0.01,  0.04, 0.9, 0.30, 0.90, 1],
+    ]) {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(0.048, 8, 6), patMat);
+      m.position.set(px, py, pz);  m.scale.set(rx, ry, rz);
+      hamGroup.add(m);  patternMeshes.push(m);
+    }
+  } else if (patPreset.id === 'banded') {
+    const bandCol = new THREE.Color(colPreset.body).lerp(new THREE.Color(colPreset.belly), 0.55);
+    const bm = new THREE.MeshStandardMaterial({ color: bandCol, roughness: 0.95 });
+    const band = new THREE.Mesh(new THREE.SphereGeometry(0.082, 12, 6), bm);
+    band.scale.set(1.06, 0.26, 1.10);
+    hamGroup.add(band);  patternMeshes.push(band);
+  } else if (patPreset.id === 'spotted') {
+    const positions = [[0.02,0.06,-0.03],[-0.04,0.05,0.01],[0.05,0.04,-0.05]];
+    for (const [px,py,pz] of positions) {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(0.022, 7, 6), patMat);
+      m.position.set(px, py, pz);  m.scale.set(1, 0.28, 1);
+      hamGroup.add(m);  patternMeshes.push(m);
+    }
+  }
+}
+
+// ── Apply bedding theme ──────────────────────────────────
+function applyBeddingTheme(theme) {
+  MAT.bedding.color.setHex(theme.base);
+  beddingMats.forEach((m, i) => m.color.setHex(theme.cols[i % theme.cols.length]));
+}
+
+// ── Cage accessories ─────────────────────────────────────
+// Tracks live mesh groups — null means not installed
+const accMeshes = { wheel: null, hideout: null, food: null, water: null, sandbath: null, branch: null };
+let wheelSpinner = null;  // spinning sub-group of wheel
+
+// ── Running wheel ────────────────────────────────────────
+function addWheel() {
+  if (accMeshes.wheel) return;
+  const g = new THREE.Group();
+  const wm = new THREE.MeshStandardMaterial({ color: 0xa87840, roughness: 0.85 });
+  const sm = new THREE.MeshStandardMaterial({ color: 0xd4c0a0, roughness: 0.92, side: THREE.DoubleSide });
+  wheelSpinner = new THREE.Group();
+  wheelSpinner.add(new THREE.Mesh(new THREE.TorusGeometry(0.155, 0.013, 7, 22), wm));
+  const surf = new THREE.Mesh(new THREE.CylinderGeometry(0.155, 0.155, 0.10, 22, 1, true), sm);
+  surf.rotation.x = Math.PI / 2;
+  wheelSpinner.add(surf);
+  for (let i = 0; i < 5; i++) {
+    const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.30, 5), wm);
+    sp.rotation.z = i * Math.PI / 5;
+    wheelSpinner.add(sp);
+  }
+  g.add(wheelSpinner);
+  for (const sx of [-0.10, 0.10]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.20, 0.018), wm);
+    leg.position.set(sx, -0.08, 0);  g.add(leg);
+  }
+  const base = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.014, 0.07), wm);
+  base.position.y = -0.174;  g.add(base);
+  g.position.set(ENC.x - 0.75, HAM_FLOOR + 0.175, ENC.z - 0.25);
+  g.rotation.y = 0.3;
+  cageRoot.add(g);  accMeshes.wheel = g;
+}
+
+// ── Hideout variants ─────────────────────────────────────
+function addWoodenHouse() {
+  if (accMeshes.hideout) return;
+  const g = new THREE.Group();
+  const wm = new THREE.MeshStandardMaterial({ color: 0xb88850, roughness: 0.88 });
+  const rm = new THREE.MeshStandardMaterial({ color: 0x9a6830, roughness: 0.90 });
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.18, 0.22), wm));
+  // Roof panels
+  for (const sx of [-1, 1]) {
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(0.148, 0.012, 0.26), rm);
+    panel.position.set(sx * 0.068, 0.115, 0);  panel.rotation.z = sx * 0.52;
+    g.add(panel);
+  }
+  // Door hole
+  const door = new THREE.Mesh(new THREE.CircleGeometry(0.052, 14),
+    new THREE.MeshStandardMaterial({ color: 0x1a1008 }));
+  door.position.set(0, -0.02, 0.112);  g.add(door);
+  // Window
+  const win = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.040, 0.01),
+    new THREE.MeshStandardMaterial({ color: 0xd0e8f0, transparent: true, opacity: 0.5 }));
+  win.position.set(0.06, 0.04, 0.112);  g.add(win);
+  g.position.set(ENC.x + 0.65, HAM_FLOOR + 0.093, ENC.z + 0.28);
+  cageRoot.add(g);  accMeshes.hideout = g;
+}
+
+function addCeramicIgloo() {
+  if (accMeshes.hideout) return;
+  const g = new THREE.Group();
+  const cm = new THREE.MeshStandardMaterial({ color: 0xece8e2, roughness: 0.6 });
+  const dm = new THREE.MeshStandardMaterial({ color: 0xc8c4bc, roughness: 0.65 });
+  // Dome — slightly flattened sphere; lift so its open bottom clears the floor disk
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(0.155, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.58), cm);
+  dome.position.y = 0.042;
+  g.add(dome);
+  // Floor disk
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.155, 0.155, 0.012, 20), dm));
+  // Entrance arch tunnel
+  const tun = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.055, 0.055, 0.10, 12, 1, true), dm);
+  tun.rotation.x = Math.PI / 2;
+  tun.position.set(0, 0.040, 0.165);
+  g.add(tun);
+  // Arch ring
+  const arch = new THREE.Mesh(new THREE.TorusGeometry(0.058, 0.010, 6, 12, Math.PI), cm);
+  arch.position.set(0, 0.060, 0.215);
+  arch.rotation.x = Math.PI / 2;
+  g.add(arch);
+  // Subtle stripe rings on dome
+  for (const lat of [0.22, 0.44, 0.66]) {
+    const r = Math.sin(lat * Math.PI * 0.58) * 0.156;
+    const y = (1 - Math.cos(lat * Math.PI * 0.58)) * 0.156 * 0.58 + 0.01;
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.004, 4, 18), dm);
+    ring.position.y = y;
+    g.add(ring);
+  }
+  g.position.set(ENC.x + 0.65, HAM_FLOOR, ENC.z + 0.28);
+  cageRoot.add(g);  accMeshes.hideout = g;
+}
+
+function addLogTunnel() {
+  if (accMeshes.hideout) return;
+  const g = new THREE.Group();
+  const lm = new THREE.MeshStandardMaterial({ color: 0x8a5830, roughness: 0.95 });
+  const dm = new THREE.MeshStandardMaterial({ color: 0x301808, roughness: 1.0 });
+  const bm = new THREE.MeshStandardMaterial({ color: 0x6a4020, roughness: 1.0 });
+  // Log body lying on its side
+  const log = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.135, 0.32, 11), lm);
+  log.rotation.z = Math.PI / 2;
+  g.add(log);
+  // Hollow ends
+  for (const px of [-0.154, 0.154]) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.095, 0.022, 8, 14), bm);
+    ring.position.x = px;
+    ring.rotation.y = Math.PI / 2;
+    g.add(ring);
+    const hole = new THREE.Mesh(new THREE.CircleGeometry(0.090, 14), dm);
+    hole.position.x = px + (px < 0 ? -0.002 : 0.002);
+    hole.rotation.y = Math.PI / 2;
+    g.add(hole);
+  }
+  // Bark knot bumps
+  for (const [bx, by, bz, bs] of [[-0.04, 0.10, 0.06, 0.032], [0.06, 0.11, -0.04, 0.026]]) {
+    const knot = new THREE.Mesh(new THREE.SphereGeometry(bs, 7, 6), bm);
+    knot.position.set(bx, by, bz);
+    g.add(knot);
+  }
+  // Horizontal bark lines
+  for (const dz of [-0.06, 0.00, 0.07]) {
+    const mark = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.006, 0.010), bm);
+    mark.position.set(0, 0.08 + dz * 0.3, dz);
+    g.add(mark);
+  }
+  g.position.set(ENC.x + 0.65, HAM_FLOOR + 0.12, ENC.z + 0.28);
+  cageRoot.add(g);  accMeshes.hideout = g;
+}
+
+// ── Food bowl variants ────────────────────────────────────
+function addFoodBowl(type = 'seed') {
+  if (accMeshes.food) return;
+  const g = new THREE.Group();
+  // Bowl colours per type
+  const bowlCol = { seed: 0xe8e0d0, pellet: 0xd8e4d0, veggie: 0xf0e0cc }[type] || 0xe8e0d0;
+  const cm = new THREE.MeshStandardMaterial({ color: bowlCol, roughness: 0.65 });
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.058, 0.038, 16), cm));
+  const inner = new THREE.Mesh(new THREE.CylinderGeometry(0.058, 0.046, 0.026, 16),
+    new THREE.MeshStandardMaterial({ color: bowlCol - 0x0a0a0a, roughness: 0.8 }));
+  inner.position.y = 0.006;  g.add(inner);
+
+  if (type === 'seed') {
+    const pm = new THREE.MeshStandardMaterial({ color: 0xc8b870, roughness: 1.0 });
+    const pm2 = new THREE.MeshStandardMaterial({ color: 0x909858, roughness: 1.0 });
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2, r = 0.018 + (i % 3) * 0.009;
+      const seed = new THREE.Mesh(new THREE.SphereGeometry(0.009, 5, 4), i % 2 ? pm : pm2);
+      seed.position.set(Math.cos(a) * r, 0.025, Math.sin(a) * r);
+      seed.scale.set(0.7, 0.5, 1.2);  seed.rotation.y = a;
+      g.add(seed);
+    }
+  } else if (type === 'pellet') {
+    const pm = new THREE.MeshStandardMaterial({ color: 0x8aaa50, roughness: 0.88 });
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2, r = 0.022;
+      const pel = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.020, 6), pm);
+      pel.position.set(Math.cos(a) * r, 0.026, Math.sin(a) * r);
+      pel.rotation.z = Math.PI / 2 + (Math.random() - 0.5) * 0.6;
+      g.add(pel);
+    }
+  } else if (type === 'veggie') {
+    const orange = new THREE.MeshStandardMaterial({ color: 0xe07030, roughness: 0.9 });
+    const green  = new THREE.MeshStandardMaterial({ color: 0x68a840, roughness: 0.9 });
+    const yellow = new THREE.MeshStandardMaterial({ color: 0xd8c040, roughness: 0.9 });
+    for (const [mat, a, r, sy] of [
+      [orange, 0,           0.018, 1.4], [orange, Math.PI*0.7, 0.026, 1.2],
+      [green,  Math.PI*1.3, 0.020, 0.6], [green, Math.PI*1.8, 0.028, 0.5],
+      [yellow, Math.PI*0.4, 0.022, 0.9],
+    ]) {
+      const bit = new THREE.Mesh(new THREE.SphereGeometry(0.012, 5, 4), mat);
+      bit.position.set(Math.cos(a) * r, 0.027, Math.sin(a) * r);
+      bit.scale.y = sy;
+      g.add(bit);
+    }
+  }
+  g.position.set(ENC.x + 0.25, HAM_FLOOR, ENC.z - 0.58);
+  cageRoot.add(g);  accMeshes.food = g;
+}
+
+// ── Water container variants ─────────────────────────────
+function addWaterContainer(type = 'bottle') {
+  if (accMeshes.water) return;
+  const g = new THREE.Group();
+
+  if (type === 'bottle') {
+    const bm = new THREE.MeshStandardMaterial({ color: 0xa8d4e8, transparent: true, opacity: 0.72, roughness: 0.1 });
+    g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.115, 12), bm));
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.040, 0.040, 0.018, 12),
+      new THREE.MeshStandardMaterial({ color: 0x80aacc, roughness: 0.5 }));
+    cap.position.y = -0.067;  g.add(cap);
+    const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.055, 8),
+      new THREE.MeshStandardMaterial({ color: 0xb0b8c0, roughness: 0.3, metalness: 0.6 }));
+    spout.position.y = -0.097;  g.add(spout);
+    const clip = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.06, 0.048),
+      new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.7 }));
+    clip.position.set(0.042, 0.02, 0);  g.add(clip);
+    g.position.set(ENC.x - TANK.hw + 0.055, HAM_FLOOR + 0.22, ENC.z - 0.18);
+    g.rotation.z = 0.14;
+
+  } else if (type === 'corner') {
+    // Triangular corner-mounted sipper
+    const bm = new THREE.MeshStandardMaterial({ color: 0xb8e0f4, transparent: true, opacity: 0.68, roughness: 0.08 });
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.058, 0.058, 0.105, 3), bm);
+    body.rotation.y = Math.PI / 6;
+    g.add(body);
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.060, 0.060, 0.014, 3),
+      new THREE.MeshStandardMaterial({ color: 0x78a8cc, roughness: 0.5 }));
+    cap.position.y = -0.059;  cap.rotation.y = Math.PI / 6;  g.add(cap);
+    const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.044, 8),
+      new THREE.MeshStandardMaterial({ color: 0xa8b0b8, roughness: 0.3, metalness: 0.55 }));
+    spout.position.y = -0.092;  g.add(spout);
+    // Water level line
+    const lvl = new THREE.Mesh(new THREE.CylinderGeometry(0.057, 0.057, 0.004, 3),
+      new THREE.MeshStandardMaterial({ color: 0x88c8e8, transparent: true, opacity: 0.5 }));
+    lvl.position.y = 0.018;  lvl.rotation.y = Math.PI / 6;  g.add(lvl);
+    g.position.set(ENC.x - TANK.hw + 0.07, HAM_FLOOR + 0.16, ENC.z - 0.18);
+
+  } else if (type === 'dish') {
+    // Shallow ceramic water dish
+    const cm = new THREE.MeshStandardMaterial({ color: 0xb4d4ec, roughness: 0.42 });
+    g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.090, 0.074, 0.030, 18), cm));
+    // Standing pebble decoration ring
+    const pm = new THREE.MeshStandardMaterial({ color: 0xc8c4bc, roughness: 0.85 });
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const peb = new THREE.Mesh(new THREE.SphereGeometry(0.009, 5, 4), pm);
+      peb.position.set(Math.cos(a) * 0.070, 0.012, Math.sin(a) * 0.070);
+      g.add(peb);
+    }
+    // Water surface
+    const wm = new THREE.MeshStandardMaterial({ color: 0x90c8e8, transparent: true, opacity: 0.55, roughness: 0.02 });
+    const water = new THREE.Mesh(new THREE.CylinderGeometry(0.072, 0.060, 0.004, 18), wm);
+    water.position.y = 0.014;  g.add(water);
+    g.position.set(ENC.x - 0.35, HAM_FLOOR, ENC.z - 0.58);
+  }
+  cageRoot.add(g);  accMeshes.water = g;
+}
+
+// ── Sand bath variants ────────────────────────────────────
+function addSandBath(type = 'natural') {
+  if (accMeshes.sandbath) return;
+  const g = new THREE.Group();
+  const palette = {
+    natural: { dish: 0xd0ccc4, sand: 0xe8e0b8, grain: 0xd4cc9c },
+    pink:    { dish: 0xecc0c8, sand: 0xf8dce4, grain: 0xf0c4d0 },
+    blue:    { dish: 0xb8cce0, sand: 0xd0e4f0, grain: 0xb8d4e8 },
+  }[type] || { dish: 0xd0ccc4, sand: 0xe8e0b8, grain: 0xd4cc9c };
+
+  const dm = new THREE.MeshStandardMaterial({ color: palette.dish, roughness: 0.72 });
+  const sm = new THREE.MeshStandardMaterial({ color: palette.sand, roughness: 1.0 });
+  const gm = new THREE.MeshStandardMaterial({ color: palette.grain, roughness: 1.0 });
+
+  // Container dish
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.135, 0.115, 0.040, 18), dm));
+  // Sand fill
+  const sand = new THREE.Mesh(new THREE.CylinderGeometry(0.112, 0.098, 0.026, 18), sm);
+  sand.position.y = 0.011;  g.add(sand);
+  // Grain bumps
+  for (let i = 0; i < 10; i++) {
+    const gr = new THREE.Mesh(new THREE.SphereGeometry(0.006, 4, 3), gm);
+    const a = (i / 10) * Math.PI * 2, r = 0.028 + (i % 3) * 0.018;
+    gr.position.set(Math.cos(a) * r, 0.024, Math.sin(a) * r);
+    g.add(gr);
+  }
+  // Tiny paw-print dents in sand (three small indentations)
+  const dent = new THREE.MeshStandardMaterial({ color: palette.dish, roughness: 1.0 });
+  for (const [dx, dz2] of [[0.02, 0.01], [-0.03, -0.02], [0.01, -0.04]]) {
+    const d = new THREE.Mesh(new THREE.SphereGeometry(0.010, 5, 4), dent);
+    d.position.set(dx, 0.022, dz2);  d.scale.y = 0.25;
+    g.add(d);
+  }
+  g.position.set(ENC.x - 0.60, HAM_FLOOR, ENC.z + 0.52);
+  cageRoot.add(g);  accMeshes.sandbath = g;
+}
+
+// ── Climbing branch ──────────────────────────────────────
+function addBranch() {
+  if (accMeshes.branch) return;
+  const g = new THREE.Group();
+  const lm = new THREE.MeshStandardMaterial({ color: 0x8a5c35, roughness: 0.95 });
+  const dm = new THREE.MeshStandardMaterial({ color: 0x6a4225, roughness: 1.0 });
+  const log = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.042, 0.52, 9), lm);
+  log.rotation.z = Math.PI / 4;  log.position.set(0.10, 0.14, 0);
+  g.add(log);
+  const br = new THREE.Mesh(new THREE.CylinderGeometry(0.020, 0.025, 0.26, 7), lm);
+  br.rotation.set(0.4, 0.3, -0.35);  br.position.set(-0.05, 0.18, 0.04);
+  g.add(br);
+  for (const dy of [-0.06, 0.02, 0.10]) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.040, 0.005, 5, 12), dm);
+    ring.position.set(0.10 + dy * 0.9, 0.14 + dy, 0);
+    ring.rotation.set(0, 0, Math.PI / 4);
+    g.add(ring);
+  }
+  g.position.set(ENC.x + 0.72, HAM_FLOOR, ENC.z - 0.42);
+  cageRoot.add(g);  accMeshes.branch = g;
+}
+
+// ── Remove helper ─────────────────────────────────────────
+function removeAcc(key) {
+  if (!accMeshes[key]) return;
+  cageRoot.remove(accMeshes[key]);
+  accMeshes[key] = null;
+  if (key === 'wheel') wheelSpinner = null;
+}
+
+// ════════════════════════════════════════════════════════
+// GAME STATE MACHINE
+// ════════════════════════════════════════════════════════
+
+let GAME_STATE = 'story'; // 'story' | 'setup' | 'playing'
+let storyPhase = 0;
+// 0 = intro (box near door, waiting to approach)
+// 1 = box wobbling  (player near, press E to open)
+// 2 = box opened    (hamster peeking, press E)
+// 3 = hamster out   (press E to go to setup)
+
+// ── Story caption helper ──────────────────────────────────
+const storyCaptionEl = document.getElementById('story-caption');
+function setCaption(txt, delay) {
+  storyCaptionEl.style.opacity = '0';
+  if (!txt) return;
+  setTimeout(() => {
+    storyCaptionEl.textContent = txt;
+    storyCaptionEl.style.opacity = '1';
+  }, delay || 400);
+}
+function clearCaption() { storyCaptionEl.style.opacity = '0'; }
+
+// ── 3D Story Box ─────────────────────────────────────────
+let storyBoxGroup, storyBoxLid, storyBoxHamGrp;
+let storyBoxOpen = false;
+let storyBoxWobble = false;
+let lidOpenT = 0, lidOpening = false;
+
+(function buildStoryBox() {
+  storyBoxGroup = new THREE.Group();
+  const boxMat  = new THREE.MeshStandardMaterial({ color: 0xc8a058, roughness: 0.9 });
+  const lidMat  = new THREE.MeshStandardMaterial({ color: 0xd8b468, roughness: 0.88 });
+  const tapeMat = new THREE.MeshStandardMaterial({ color: 0x9a7028, roughness: 0.95 });
+
+  // Body
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.44, 0.46), boxMat);
+  body.position.y = 0.22; body.castShadow = true;
+  storyBoxGroup.add(body);
+
+  // Tape strips
+  const t1 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.45, 0.03), tapeMat);
+  t1.position.set(0, 0.22, 0.235); storyBoxGroup.add(t1);
+  const t2 = new THREE.Mesh(new THREE.BoxGeometry(0.53, 0.03, 0.03), tapeMat);
+  t2.position.set(0, 0.22, 0.235); storyBoxGroup.add(t2);
+
+  // Lid (pivots from back edge)
+  storyBoxLid = new THREE.Group();
+  storyBoxLid.position.set(0, 0.44, -0.22);
+  const lidPanel = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.05, 0.48), lidMat);
+  lidPanel.position.set(0, 0, 0.22); lidPanel.castShadow = true;
+  storyBoxLid.add(lidPanel);
+  storyBoxGroup.add(storyBoxLid);
+
+  // Mini hamster inside (hidden until box opens)
+  storyBoxHamGrp = new THREE.Group();
+  storyBoxHamGrp.position.set(0, 0.52, 0.02);
+  storyBoxHamGrp.visible = false;
+  const hb = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), hamMat.fur);
+  hb.scale.set(1, 0.75, 1); storyBoxHamGrp.add(hb);
+  const hh = new THREE.Mesh(new THREE.SphereGeometry(0.065, 10, 8), hamMat.fur);
+  hh.position.set(0, 0.06, 0.07); storyBoxHamGrp.add(hh);
+  for (const sx of [-1, 1]) {
+    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.026, 7, 6), hamMat.fur);
+    ear.position.set(sx * 0.048, 0.115, 0.055); ear.scale.set(1, 1.25, 0.42);
+    storyBoxHamGrp.add(ear);
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.009, 7, 6), hamMat.eye);
+    eye.position.set(sx * 0.033, 0.074, 0.120);
+    storyBoxHamGrp.add(eye);
+  }
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.008, 6, 5), hamMat.nose);
+  nose.position.set(0, 0.064, 0.128); nose.scale.set(1.3, 0.8, 0.7);
+  storyBoxHamGrp.add(nose);
+  storyBoxGroup.add(storyBoxHamGrp);
+
+  storyBoxGroup.position.set(RW - 0.68, 0, 2.85);
+  storyBoxGroup.rotation.y = -Math.PI * 0.5;
+  scene.add(storyBoxGroup);
+})();
+
+// Invisible interaction target for the box
+const storyBoxTarget = new THREE.Mesh(
+  new THREE.BoxGeometry(0.7, 0.6, 0.6),
+  new THREE.MeshBasicMaterial({ visible: false })
+);
+storyBoxTarget.position.set(RW - 0.68, 0.3, 2.85);
+scene.add(storyBoxTarget);
+
+let lookingAtBox = false;
+
+function openStoryBox() {
+  if (storyBoxOpen) return;
+  storyBoxOpen = true; storyBoxWobble = false; lidOpening = true;
+  // Pick a random hamster appearance right when box opens
+  const colIdx  = Math.floor(Math.random() * HAM_COLOURS.length);
+  const patIdx  = Math.floor(Math.random() * HAM_PATTERNS.length);
+  const sizeIdx = Math.floor(Math.random() * HAM_SIZES.length);
+  const rCol = HAM_COLOURS[colIdx], rPat = HAM_PATTERNS[patIdx], rSize = HAM_SIZES[sizeIdx];
+  applyHamsterAppearance(rCol, rPat, rSize);
+  upsertActiveProfile({ hamAppearance: { colIdx, patIdx, sizeIdx } });
+  // Also colour the mini story-box hamster to match
+  hamMat.fur.color.setHex(rCol.body);
+  setTimeout(() => { storyBoxHamGrp.visible = true; }, 350);
+  setTimeout(() => { storyPhase = 2; setCaption('oh.', 200); }, 700);
+}
+
+function advanceStory3D() {
+  if (storyPhase === 1) { openStoryBox(); return; }
+  if (storyPhase === 2 || storyPhase === 3) {
+    storyPhase = 99;
+    clearCaption();
+    scene.remove(storyBoxGroup);
+    scene.remove(storyBoxTarget);
+    applyDefaultCageAndName();
+  }
+}
+
+function updateStoryBox(dt, t) {
+  if (!storyBoxGroup.parent) return;
+  if (storyBoxWobble && !storyBoxOpen) {
+    storyBoxGroup.rotation.z = Math.sin(t * 6.0) * 0.045;
+    storyBoxGroup.position.y = Math.abs(Math.sin(t * 6.0)) * 0.018;
+  }
+  if (lidOpening) {
+    lidOpenT = Math.min(1, lidOpenT + dt * 1.8);
+    storyBoxLid.rotation.x = lidOpenT * (-Math.PI * 0.7);
+    if (lidOpenT >= 1) {
+      lidOpening = false;
+      storyPhase = 3;
+      setCaption("it's your new friend  ·  press [E] to set up their home", 400);
+    }
+  }
+  if (storyBoxHamGrp.visible) {
+    const peek = Math.max(0, Math.min(1, (lidOpenT - 0.4) * 3));
+    storyBoxHamGrp.position.y = 0.52 + peek * 0.08;
+    storyBoxHamGrp.rotation.y = Math.sin(t * 1.2) * 0.2;
+  }
+  if (storyPhase === 0 && controls.isLocked) {
+    const p = controls.getObject().position;
+    const dx = p.x - storyBoxGroup.position.x;
+    const dz = p.z - storyBoxGroup.position.z;
+    if (dx * dx + dz * dz < 6.0) {
+      storyPhase = 1;
+      storyBoxWobble = true;
+      setCaption('a box.  [E] to open it', 300);
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// 3D SETUP SYSTEM
+// ════════════════════════════════════════════════════════
+
+const setupChoices = {
+  hamIdx: 0, bedding: 0,
+  hideout: 'house', food: 'seed', water: 'bottle',
+  sandbath: null, wheel: false, branch: false,
+};
+
+let setupItems = [];
+let setupBenchGroup, setupDoneTarget;
+let lookingAtSetupItem = null;
+let lookingAtDone = false;
+let hamOptions = [];
+const setupCatEl  = document.getElementById('setup-category');
+const nameWrapEl  = document.getElementById('name-wrap');
+
+function showSetupCat(txt) {
+  setupCatEl.textContent = txt || '';
+  setupCatEl.style.opacity = txt ? '1' : '0';
+}
+
+function buildBench() {
+  setupBenchGroup = new THREE.Group();
+  const wm = new THREE.MeshStandardMaterial({ color: 0xb88c58, roughness: 0.82 });
+  const top = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.06, 0.80), wm);
+  top.position.y = 0.03; top.castShadow = top.receiveShadow = true;
+  setupBenchGroup.add(top);
+  for (const [lx, lz] of [[-2.65, -0.34], [2.65, -0.34], [-2.65, 0.34], [2.65, 0.34]]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.82, 0.06), wm);
+    leg.position.set(lx, -0.41, lz); setupBenchGroup.add(leg);
+  }
+  const xbar = new THREE.Mesh(new THREE.BoxGeometry(5.3, 0.04, 0.04), wm);
+  xbar.position.set(0, -0.62, 0); setupBenchGroup.add(xbar);
+  setupBenchGroup.position.set(0, 0.85, 1.0);
+  scene.add(setupBenchGroup);
+  OBSTACLES.push({ x0: -2.8, x1: 2.8, z0: 0.62, z1: 1.42 });
+}
+
+function makeRingMesh(r) {
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xffe8a0, emissive: 0xffd060, emissiveIntensity: 0.9,
+    transparent: true, opacity: 0,
+  });
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.008, 5, 24), mat);
+  ring.rotation.x = Math.PI / 2;
+  return ring;
+}
+
+function makeMiniHam(col) {
+  const g = new THREE.Group();
+  const fm = new THREE.MeshStandardMaterial({ color: col.body, roughness: 0.95 });
+  const bm = new THREE.MeshStandardMaterial({ color: col.belly, roughness: 0.95 });
+  const em = new THREE.MeshStandardMaterial({ color: col.eye, roughness: 0.1, metalness: 0.5 });
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.065, 10, 8), fm);
+  body.scale.set(1, 0.78, 1.1); g.add(body);
+  const belly = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), bm);
+  belly.position.set(0, -0.012, 0.042); g.add(belly);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.048, 10, 8), fm);
+  head.position.set(0, 0.028, 0.075); g.add(head);
+  for (const sx of [-1, 1]) {
+    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.020, 7, 6), fm);
+    ear.position.set(sx * 0.038, 0.072, 0.060); ear.scale.set(1, 1.25, 0.42); g.add(ear);
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.007, 6, 5), em);
+    eye.position.set(sx * 0.026, 0.040, 0.098); g.add(eye);
+  }
+  return g;
+}
+
+function makeMiniSwatch(hexCol) {
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(
+    new THREE.CylinderGeometry(0.055, 0.055, 0.014, 18),
+    new THREE.MeshStandardMaterial({ color: hexCol, roughness: 0.95 })
+  ));
+  return g;
+}
+
+function makeMiniHideout(type) {
+  const g = new THREE.Group();
+  if (type === 'house') {
+    const wm = new THREE.MeshStandardMaterial({ color: 0xb88850, roughness: 0.88 });
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.10, 0.12), wm));
+    for (const sx of [-1, 1]) {
+      const p = new THREE.Mesh(new THREE.BoxGeometry(0.080, 0.007, 0.14),
+        new THREE.MeshStandardMaterial({ color: 0x9a6830, roughness: 0.9 }));
+      p.position.set(sx * 0.037, 0.065, 0); p.rotation.z = sx * 0.52; g.add(p);
+    }
+  } else if (type === 'igloo') {
+    const cm = new THREE.MeshStandardMaterial({ color: 0xece8e2, roughness: 0.6 });
+    g.add(new THREE.Mesh(new THREE.SphereGeometry(0.085, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.58), cm));
+  } else if (type === 'logtunnel') {
+    const lm = new THREE.MeshStandardMaterial({ color: 0x8a5830, roughness: 0.95 });
+    const log = new THREE.Mesh(new THREE.CylinderGeometry(0.060, 0.068, 0.16, 9), lm);
+    log.rotation.z = Math.PI / 2; g.add(log);
+  } else {
+    makeMiniNoneInto(g);
+  }
+  return g;
+}
+
+function makeMiniNoneInto(g) {
+  const m = new THREE.MeshStandardMaterial({ color: 0x665550, roughness: 1.0 });
+  const b1 = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.008, 0.012), m); b1.rotation.y = 0.7; g.add(b1);
+  const b2 = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.008, 0.012), m); b2.rotation.y = -0.7; g.add(b2);
+}
+
+function makeMiniNone() { const g = new THREE.Group(); makeMiniNoneInto(g); return g; }
+
+function makeMiniFood(type) {
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.038, 0.024, 12),
+    new THREE.MeshStandardMaterial({ color: 0xe8e0d0, roughness: 0.7 })));
+  const col = type === 'seed' ? 0xc8b860 : type === 'pellet' ? 0x8aaa50 : 0xe07030;
+  const cm = new THREE.MeshStandardMaterial({ color: col, roughness: 0.9 });
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    const bit = new THREE.Mesh(new THREE.SphereGeometry(0.009, 5, 4), cm);
+    bit.position.set(Math.cos(a) * 0.020, 0.016, Math.sin(a) * 0.020); g.add(bit);
+  }
+  return g;
+}
+
+function makeMiniWater(type) {
+  const g = new THREE.Group();
+  if (type === 'bottle') {
+    g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.075, 10),
+      new THREE.MeshStandardMaterial({ color: 0xa8d4e8, transparent: true, opacity: 0.72, roughness: 0.1 })));
+  } else if (type === 'corner') {
+    g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.034, 0.065, 3),
+      new THREE.MeshStandardMaterial({ color: 0xb8e0f4, transparent: true, opacity: 0.68, roughness: 0.1 })));
+  } else {
+    g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.044, 0.020, 14),
+      new THREE.MeshStandardMaterial({ color: 0xb4d4ec, roughness: 0.42 })));
+  }
+  return g;
+}
+
+function makeMiniSand(type) {
+  const g = new THREE.Group();
+  const cols = { natural: { d: 0xd0ccc4, s: 0xe8e0b8 }, pink: { d: 0xecc0c8, s: 0xf8dce4 }, blue: { d: 0xb8cce0, s: 0xd0e4f0 } };
+  const pal = cols[type] || cols.natural;
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.024, 14),
+    new THREE.MeshStandardMaterial({ color: pal.d, roughness: 0.72 })));
+  const sf = new THREE.Mesh(new THREE.CylinderGeometry(0.054, 0.046, 0.016, 14),
+    new THREE.MeshStandardMaterial({ color: pal.s, roughness: 1.0 }));
+  sf.position.y = 0.008; g.add(sf);
+  return g;
+}
+
+function makeMiniWheel() {
+  const g = new THREE.Group();
+  const m = new THREE.MeshStandardMaterial({ color: 0xa87840, roughness: 0.85 });
+  g.add(new THREE.Mesh(new THREE.TorusGeometry(0.060, 0.008, 5, 16), m));
+  const surf = new THREE.Mesh(new THREE.CylinderGeometry(0.060, 0.060, 0.040, 16, 1, true),
+    new THREE.MeshStandardMaterial({ color: 0xd4c0a0, roughness: 0.9, side: THREE.DoubleSide }));
+  surf.rotation.x = Math.PI / 2; g.add(surf);
+  return g;
+}
+
+function addCategoryBase(x0, x1, z, hexCol) {
+  const pad = new THREE.Mesh(
+    new THREE.BoxGeometry(x1 - x0 + 0.06, 0.008, 0.32),
+    new THREE.MeshStandardMaterial({ color: hexCol, roughness: 0.9 })
+  );
+  pad.position.set((x0 + x1) / 2, 0.064, z);
+  setupBenchGroup.add(pad);
+}
+
+function addSetupItem(mini, x, z, category, value, label, ringR) {
+  const bY = 0.068;
+  mini.position.set(x, bY + 0.05, z);
+  setupBenchGroup.add(mini);
+
+  const hit = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.13, 0.13, 0.22, 8),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  hit.position.set(x, bY + 0.11, z);
+  setupBenchGroup.add(hit);
+
+  const ring = makeRingMesh(ringR || 0.09);
+  ring.position.set(x, bY + 0.002, z);
+  setupBenchGroup.add(ring);
+
+  setupItems.push({ group: mini, hitMesh: hit, ring, category, value, label });
+}
+
+function buildDoneMarker() {
+  // Placed front-right, in the front row (ZF = 0.17)
+  const bx = 2.10, bz = 0.17;
+  setupDoneTarget = new THREE.Mesh(
+    new THREE.BoxGeometry(0.40, 0.32, 0.40),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  setupDoneTarget.position.set(bx, 0.068 + 0.16, bz);
+  setupBenchGroup.add(setupDoneTarget);
+
+  // Glowing sign plate
+  const gm = new THREE.MeshStandardMaterial({
+    color: 0xffe8a0, emissive: 0xffd060, emissiveIntensity: 0.55,
+    transparent: true, opacity: 0.82
+  });
+  const sign = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.12, 0.04), gm);
+  sign.position.set(bx, 0.068 + 0.065, bz + 0.02);
+  setupBenchGroup.add(sign);
+
+  // Dark backing
+  const sm = new THREE.MeshStandardMaterial({ color: 0x5a4020, roughness: 0.9 });
+  const back = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.14, 0.03), sm);
+  back.position.set(bx, 0.068 + 0.065, bz);
+  setupBenchGroup.add(back);
+
+  const fakeRing = { material: { opacity: 0 } };
+  setupItems.push({ group: sign, hitMesh: setupDoneTarget, ring: fakeRing, category: '__done__', value: null, label: 'done — bring them home' });
+}
+
+function buildSetupItems() {
+  // Two rows: front (z=+0.17, closer to player) and back (z=-0.17, far side)
+  const ZF = 0.17;   // front row Z
+  const ZB = -0.17;  // back row Z
+
+  // ── FRONT ROW: hideout · food · done ──
+  // Hideout (4 items, brown base)
+  addCategoryBase(-2.10, -0.45, ZF, 0xa07848);
+  addSetupItem(makeMiniNone(),               -2.00, ZF, 'hideout', null,        'no hideout',  0.09);
+  addSetupItem(makeMiniHideout('house'),     -1.50, ZF, 'hideout', 'house',     'wooden house',0.10);
+  addSetupItem(makeMiniHideout('igloo'),     -1.00, ZF, 'hideout', 'igloo',     'clay igloo',  0.10);
+  addSetupItem(makeMiniHideout('logtunnel'),-0.55, ZF, 'hideout', 'logtunnel', 'log tunnel',  0.10);
+
+  // Food (3 items, green base)
+  addCategoryBase(-0.20, 0.78, ZF, 0x78a860);
+  addSetupItem(makeMiniFood('seed'),  -0.12, ZF, 'food', 'seed',   'seed mix', 0.08);
+  addSetupItem(makeMiniFood('pellet'), 0.22, ZF, 'food', 'pellet', 'pellets',  0.08);
+  addSetupItem(makeMiniFood('veggie'), 0.56, ZF, 'food', 'veggie', 'veggies',  0.08);
+
+  // ── BACK ROW: bedding · water · sand · extras ──
+  // Bedding (6 swatches, cream base)
+  addCategoryBase(-2.10, -0.75, ZB, 0xd8c8b0);
+  BEDDING_THEMES.forEach((t, i) =>
+    addSetupItem(makeMiniSwatch(t.base), -2.00 + i * 0.25, ZB, 'bedding', i, t.label, 0.07));
+
+  // Water (3 items, blue base)
+  addCategoryBase(-0.60, 0.28, ZB, 0x88b8d0);
+  addSetupItem(makeMiniWater('bottle'), -0.50, ZB, 'water', 'bottle', 'bottle',        0.07);
+  addSetupItem(makeMiniWater('corner'), -0.18, ZB, 'water', 'corner', 'corner sipper', 0.07);
+  addSetupItem(makeMiniWater('dish'),    0.16, ZB, 'water', 'dish',   'water dish',    0.07);
+
+  // Sand bath (4 items, sandy base)
+  addCategoryBase(0.38, 1.50, ZB, 0xd0c090);
+  addSetupItem(makeMiniNone(),            0.48, ZB, 'sand', null,      'no sand bath', 0.07);
+  addSetupItem(makeMiniSand('natural'),   0.78, ZB, 'sand', 'natural', 'natural sand', 0.08);
+  addSetupItem(makeMiniSand('pink'),      1.08, ZB, 'sand', 'pink',    'rose sand',    0.08);
+  addSetupItem(makeMiniSand('blue'),      1.38, ZB, 'sand', 'blue',    'mineral sand', 0.08);
+
+  // Extras (2 items, sage base)
+  addCategoryBase(1.60, 2.10, ZB, 0x90a880);
+  addSetupItem(makeMiniWheel(), 1.70, ZB, 'wheel',  'toggle', 'running wheel', 0.09);
+  addSetupItem(makeMiniNone(),  2.00, ZB, 'branch', 'toggle', 'climbing log',  0.09);
+
+  // Done sign (front right)
+  buildDoneMarker();
+}
+
+function highlightSetupSelection(cat, val) {
+  for (const it of setupItems) {
+    if (it.category !== cat) continue;
+    let sel;
+    if (cat === 'wheel')  sel = setupChoices.wheel  && it.value === 'toggle';
+    else if (cat === 'branch') sel = setupChoices.branch && it.value === 'toggle';
+    else sel = (val === null ? it.value === null : it.value === val);
+    it.ring.material.opacity = sel ? 0.85 : 0;
+  }
+}
+
+function selectSetupItem(item) {
+  const { category, value } = item;
+  if (category === '__done__') { openNamingScreen(); return; }
+  if (category === 'bedding') {
+    setupChoices.bedding = value;
+    highlightSetupSelection('bedding', value);
+    applyBeddingTheme(BEDDING_THEMES[value]);
+  } else if (category === 'hideout') {
+    setupChoices.hideout = value;
+    highlightSetupSelection('hideout', value);
+    removeAcc('hideout');
+    if (value === 'house') addWoodenHouse();
+    else if (value === 'igloo') addCeramicIgloo();
+    else if (value === 'logtunnel') addLogTunnel();
+  } else if (category === 'food') {
+    setupChoices.food = value;
+    highlightSetupSelection('food', value);
+    removeAcc('food'); addFoodBowl(value);
+  } else if (category === 'water') {
+    setupChoices.water = value;
+    highlightSetupSelection('water', value);
+    removeAcc('water'); addWaterContainer(value);
+  } else if (category === 'sand') {
+    setupChoices.sandbath = value;
+    highlightSetupSelection('sand', value);
+    removeAcc('sandbath'); if (value) addSandBath(value);
+  } else if (category === 'wheel') {
+    setupChoices.wheel = !setupChoices.wheel;
+    if (setupChoices.wheel) addWheel(); else removeAcc('wheel');
+    item.ring.material.opacity = setupChoices.wheel ? 0.85 : 0;
+  } else if (category === 'branch') {
+    setupChoices.branch = !setupChoices.branch;
+    if (setupChoices.branch) addBranch(); else removeAcc('branch');
+    item.ring.material.opacity = setupChoices.branch ? 0.85 : 0;
+  }
+}
+
+function startSetup() {
+  cageRoot.visible = true;   // reveal empty cage
+  buildBench();
+  buildSetupItems();
+  // Default selections
+  highlightSetupSelection('bedding', 0);
+  highlightSetupSelection('hideout', 'house');
+  highlightSetupSelection('food', 'seed');
+  highlightSetupSelection('water', 'bottle');
+  highlightSetupSelection('sand', null);
+  // Apply defaults into scene
+  applyBeddingTheme(BEDDING_THEMES[0]);
+  addWoodenHouse(); addFoodBowl('seed'); addWaterContainer('bottle');
+
+  showSetupCat('set up their home');
+  setCaption('walk up to the table  \u00b7  look at items and press [E] to choose', 500);
+}
+
+function applyDefaultCageAndName() {
+  setupChoices.bedding  = 0;
+  setupChoices.hideout  = 'house';
+  setupChoices.food     = 'seed';
+  setupChoices.water    = 'bottle';
+  setupChoices.sandbath = null;
+  setupChoices.wheel    = true;
+  setupChoices.branch   = false;
+  setupChoices.hamIdx   = 0;
+
+  cageRoot.visible = true;
+  applyBeddingTheme(BEDDING_THEMES[0]);
+  addWoodenHouse();
+  addFoodBowl('seed');
+  addWaterContainer('bottle');
+  addWheel();
+
+  openNamingScreen();
+}
+
+function openNamingScreen() {
+  // Transition from cage-design to naming — unlock pointer so player can type
+  GAME_STATE = 'naming';
+  nameInputOpen = true;
+  controls.unlock();
+  nameWrapEl.classList.add('visible');
+  setCaption('give your hamster a name  \u00b7  then press Enter', 100);
+  setupCatEl.style.opacity = '0';
+  interactPrompt.classList.remove('visible');
+  const inp = document.getElementById('ham-name-input');
+  inp.value = '';
+  setTimeout(() => inp.focus(), 80);
+
+  function onNameEnter(e) {
+    if (e.key === 'Enter') {
+      inp.removeEventListener('keydown', onNameEnter);
+      finishSetup();
+    }
+  }
+  inp.addEventListener('keydown', onNameEnter);
+}
+
+function finishSetup() {
+  // Reveal hamster now that the cage is set up
+  hamGroup.visible = true;
+  startBehavior(B.IDLE);
+  applyBeddingTheme(BEDDING_THEMES[setupChoices.bedding]);
+  window.hamsterName = document.getElementById('ham-name-input').value.trim() || 'little one';
+
+  // Persist completed profile
+  upsertActiveProfile({
+    hamsterName: window.hamsterName,
+    setupChoices: { ...setupChoices },
+    setupDone: true
+  });
+
+  if (setupBenchGroup) scene.remove(setupBenchGroup);
+  const bi = OBSTACLES.findIndex(o => o.x0 === -2.8);
+  if (bi >= 0) OBSTACLES.splice(bi, 1);
+
+  nameWrapEl.classList.remove('visible');
+  setupCatEl.style.opacity = '0';
+  clearCaption();
+  GAME_STATE = 'playing';
+  syncCareItemVisibility();
+  buildDailyShop();
+  loadBoughtItems();
+
+  const so = document.getElementById('start-overlay');
+  so.style.display = 'flex';
+  requestAnimationFrame(() => { so.style.opacity = '1'; });
+}
+
+// ════════════════════════════════════════════════════════
+// SETUP RAYCASTER
+// ════════════════════════════════════════════════════════
+const setupRaycaster = new THREE.Raycaster();
+
+const CAT_LABELS = {
+  ham: 'your hamster', bedding: 'bedding', hideout: 'hideout',
+  food: 'food bowl', water: 'water', sand: 'sand bath',
+  wheel: 'extras', branch: 'extras', __done__: '',
+};
+function checkSetupInteraction() {
+  if (GAME_STATE !== 'setup' || !controls.isLocked) return;
+  setupRaycaster.setFromCamera(RAY_CENTRE, camera);
+  const hitMeshes = setupItems.map(it => it.hitMesh);
+  const hits = setupRaycaster.intersectObjects(hitMeshes, false);
+  lookingAtSetupItem = null;
+  lookingAtDone = false;
+  if (hits.length > 0 && hits[0].distance < 5.5) {
+    const found = setupItems.find(it => it.hitMesh === hits[0].object);
+    if (found) {
+      lookingAtSetupItem = found;
+      const isDone = found.category === '__done__';
+      const isToggle = found.category === 'wheel' || found.category === 'branch';
+      const on = isToggle && (found.category === 'wheel' ? setupChoices.wheel : setupChoices.branch);
+
+      // Show category hint at top
+      showSetupCat(CAT_LABELS[found.category] || '');
+
+      interactPrompt.textContent = isDone
+        ? '[E] bring them home'
+        : '[E] ' + (on ? '(on) \u2713 ' : '') + found.label;
+      interactPrompt.classList.add('visible');
+      lookingAtDone = isDone;
+    }
+  } else {
+    interactPrompt.classList.remove('visible');
+    showSetupCat('set up their home');
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// MOOD CHECK-IN SYSTEM  (Stage 4)
+// ════════════════════════════════════════════════════════
+
+const MOOD_OPTIONS = [
+  { id: 'happy',       label: 'happy',       note: 'something good is happening',   color: '#d4b060' },
+  { id: 'excited',     label: 'excited',     note: 'full of energy',                color: '#c87840' },
+  { id: 'calm',        label: 'calm',        note: 'peaceful and settled',          color: '#88b8d0' },
+  { id: 'neutral',     label: 'neutral',     note: 'just getting through it',       color: '#b0a898' },
+  { id: 'tired',       label: 'tired',       note: 'running on empty',              color: '#9898a8' },
+  { id: 'nervous',     label: 'nervous',     note: 'a little on edge',              color: '#a8b870' },
+  { id: 'anxious',     label: 'anxious',     note: 'wound up tight',                color: '#b89858' },
+  { id: 'overwhelmed', label: 'overwhelmed', note: 'too much at once',              color: '#c87070' },
+  { id: 'sad',         label: 'sad',         note: 'carrying something heavy',      color: '#8890b8' },
+];
+
+let selectedMoodId = null;
+
+// ── Helper: dateKey string for a Date object ─────────────
+function dateKey(d) {
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+// ── Helper: human-readable date label ────────────────────
+function friendlyDate(key) {
+  const [y, m, d] = key.split('-').map(Number);
+  const then = new Date(y, m, d);
+  const now  = new Date();
+  const todayK   = dateKey(now);
+  const yestDate = new Date(now); yestDate.setDate(now.getDate() - 1);
+  const yestK    = dateKey(yestDate);
+  if (key === todayK) return 'today';
+  if (key === yestK)  return 'yesterday';
+  return then.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+}
+
+// ── Mood check-in overlay ─────────────────────────────────
+function openMoodOverlay() {
+  const todayK = dateKey(new Date());
+  const prof   = getActiveProfile();
+  const already = prof?.moods?.[todayK] || null;
+  const existingNote = prof?.moodNotes?.[todayK] || null;
+
+  selectedMoodId = null;
+  const container  = document.getElementById('mood-options');
+  const noteEl     = document.getElementById('mood-note');
+  const submitBtn  = document.getElementById('mood-submit-btn');
+  const journalWrap = document.getElementById('mood-journal-wrap');
+  const journalInput = document.getElementById('mood-journal-input');
+  container.innerHTML = '';
+  noteEl.className = 'mood-note';
+  journalWrap.classList.remove('visible');
+  journalInput.value = '';
+  document.getElementById('journal-chars').textContent = '0 / 400';
+
+  if (already) {
+    // Already checked in — show recap
+    const moodData = MOOD_OPTIONS.find(m => m.id === already);
+    const col = moodData?.color || '#b0a898';
+    container.innerHTML = `
+      <div class="checkin-recap">
+        <span class="checkin-mood-pill" style="background:${col}22;border:1px solid ${col}55;color:${col}">
+          ${already}
+        </span>
+        ${existingNote ? `<div class="checkin-note-text">"${existingNote}"</div>` : ''}
+        <div class="mood-note" style="color:rgba(160,140,110,0.55);font-size:0.68rem">
+          ${window.hamsterName || 'your hamster'} already knows how you feel today ♡
+        </div>
+      </div>`;
+    submitBtn.textContent = 'close';
+    submitBtn.onclick = closeMoodOverlay;
+  } else {
+    noteEl.textContent = '';
+    submitBtn.textContent = 'tell them →';
+    submitBtn.onclick = () => window.submitMood();
+
+    MOOD_OPTIONS.forEach(m => {
+      const btn = document.createElement('button');
+      btn.className = 'mood-btn';
+      btn.dataset.id = m.id;
+      btn.textContent = m.label;
+      btn.style.setProperty('--mood-col', m.color);
+      btn.onclick = () => {
+        selectedMoodId = m.id;
+        container.querySelectorAll('.mood-btn').forEach(b =>
+          b.classList.toggle('selected', b.dataset.id === m.id));
+        noteEl.textContent = m.note;
+        journalWrap.classList.add('visible');
+        setTimeout(() => journalInput.focus(), 60);
+      };
+      container.appendChild(btn);
+    });
+
+    // Character counter for journal
+    journalInput.oninput = () => {
+      document.getElementById('journal-chars').textContent =
+        journalInput.value.length + ' / 400';
+    };
+  }
+
+  moodOverlayOpen = true;
+  controls.unlock();
+  document.getElementById('mood-overlay').classList.add('visible');
+}
+
+window.submitMood = function() {
+  if (!selectedMoodId) return;
+
+  const journalText = document.getElementById('mood-journal-input').value.trim();
+
+  hamState.mood = selectedMoodId;
+  try { localStorage.setItem(todayKey(), selectedMoodId); } catch (_) {}
+  saveMoodToProfile(selectedMoodId, journalText);
+
+  // Trust gain: base 4, +2 if wrote a meaningful note, +1 if checked in yesterday
+  let trustGain = 4;
+  if (journalText.length > 10) trustGain += 2;
+  const yest = new Date(); yest.setDate(yest.getDate() - 1);
+  if (getActiveProfile()?.moods?.[dateKey(yest)]) trustGain += 1;
+  gainTrust(trustGain);
+
+  // Award 1 point for journaling
+  const prof = getActiveProfile();
+  if (prof) {
+    upsertActiveProfile({ points: (prof.points || 0) + 1 });
+    updatePointsDisplay();
+  }
+
+  startBehavior(pickBehaviour(scoreBehaviours()));
+
+  // Confirmation
+  document.getElementById('mood-options').innerHTML = '';
+  document.getElementById('mood-journal-wrap').classList.remove('visible');
+  const noteEl = document.getElementById('mood-note');
+  noteEl.textContent = journalText
+    ? 'they heard you ♡'
+    : 'they understand ♡';
+  noteEl.className = 'mood-note confirmed';
+  document.getElementById('mood-submit-btn').disabled = true;
+  setTimeout(closeMoodOverlay, 1200);
+};
+
+function closeMoodOverlay() {
+  moodOverlayOpen = false;
+  document.getElementById('mood-overlay').classList.remove('visible');
+  document.getElementById('mood-submit-btn').disabled = false;
+  controls.lock();
+}
+
+// ── Mood history overlay ──────────────────────────────────
+let _historyFromPause = false;
+
+let calYear, calMonth, calSelectedKey = null;
+
+function openHistoryOverlay(fromPause) {
+  _historyFromPause = !!fromPause;
+  if (fromPause) {
+    document.getElementById('pause-menu').classList.remove('visible');
+  } else {
+    document.getElementById('mood-overlay').classList.remove('visible');
+  }
+  historyOverlayOpen = true;
+  const now = new Date();
+  calYear  = now.getFullYear();
+  calMonth = now.getMonth();
+  calSelectedKey = null;
+  renderCalendar();
+  buildCalLegend();
+  document.getElementById('history-overlay').classList.add('visible');
+}
+
+function closeHistoryOverlay() {
+  historyOverlayOpen = false;
+  document.getElementById('history-overlay').classList.remove('visible');
+  if (_historyFromPause) {
+    // Return to game — re-lock
+    controls.lock();
+  } else {
+    // Return to mood overlay
+    document.getElementById('mood-overlay').classList.add('visible');
+  }
+}
+
+function calPrevMonth() {
+  calMonth--;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  calSelectedKey = null;
+  renderCalendar();
+}
+
+function calNextMonth() {
+  calMonth++;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  calSelectedKey = null;
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const prof  = getActiveProfile();
+  const moods = prof?.moods || {};
+
+  // Update month label
+  const MONTHS = ['january','february','march','april','may','june',
+                  'july','august','september','october','november','december'];
+  document.getElementById('cal-month-label').textContent =
+    MONTHS[calMonth] + '  ' + calYear;
+
+  // Hide detail when navigating
+  document.getElementById('cal-detail').classList.remove('visible');
+
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  const today    = new Date();
+  const todayKey = `${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()}`;
+
+  // First day of month (0=Sun) and total days
+  const firstDow  = new Date(calYear, calMonth, 1).getDay();
+  const daysInMon = new Date(calYear, calMonth + 1, 0).getDate();
+
+  // Empty cells before first day
+  for (let i = 0; i < firstDow; i++) {
+    const blank = document.createElement('div');
+    blank.className = 'cal-day';
+    grid.appendChild(blank);
+  }
+
+  // Day cells
+  for (let d = 1; d <= daysInMon; d++) {
+    const key      = `${calYear}-${calMonth+1}-${d}`;
+    const moodId   = moods[key];
+    const moodData = moodId ? MOOD_OPTIONS.find(m => m.id === moodId) : null;
+    const isToday  = key === todayKey;
+    const isFuture = new Date(calYear, calMonth, d) > today;
+
+    const cell = document.createElement('div');
+    cell.className = 'cal-day';
+    if (moodData)       { cell.classList.add('has-entry'); cell.style.background = moodData.color + 'cc'; cell.style.color = 'rgba(20,10,5,0.85)'; }
+    if (isToday)          cell.classList.add('is-today');
+    if (isFuture)         cell.classList.add('is-future');
+    if (key === calSelectedKey) cell.classList.add('selected');
+
+    cell.textContent = d;
+
+    if (moodData) {
+      cell.onclick = () => showDayDetail(key);
+    }
+
+    grid.appendChild(cell);
+  }
+}
+
+function showDayDetail(key) {
+  const prof  = getActiveProfile();
+  const moods = prof?.moods || {};
+  const notes = prof?.moodNotes || {};
+
+  // Update selection highlight
+  if (calSelectedKey) {
+    const prev = document.querySelector('.cal-day.selected');
+    if (prev) prev.classList.remove('selected');
+  }
+  calSelectedKey = key;
+  // Find newly selected cell and highlight
+  const grid = document.getElementById('cal-grid');
+  const firstDow  = new Date(calYear, calMonth, 1).getDay();
+  const [y, m, d] = key.split('-').map(Number);
+  const cellIndex = firstDow + d - 1;
+  if (grid.children[cellIndex]) grid.children[cellIndex].classList.add('selected');
+
+  const moodId   = moods[key];
+  const noteText = notes[key] || '';
+  const moodData = MOOD_OPTIONS.find(m => m.id === moodId);
+  const col      = moodData?.color || '#b0a898';
+  const label    = moodData?.label || moodId;
+
+  // Friendly date label
+  const dateObj  = new Date(y, m - 1, d);
+  const MONTHS   = ['january','february','march','april','may','june',
+                    'july','august','september','october','november','december'];
+  const dateStr  = MONTHS[m - 1] + ' ' + d + ', ' + y;
+
+  document.getElementById('cal-detail-date').textContent = dateStr;
+  const pill = document.getElementById('cal-detail-pill');
+  pill.textContent = label;
+  pill.style.background = col + '22';
+  pill.style.border     = '1px solid ' + col + '55';
+  pill.style.color      = col;
+
+  const body = document.getElementById('cal-detail-body');
+  body.innerHTML = noteText
+    ? `<div class="cal-detail-note">"${noteText}"</div>`
+    : `<div class="cal-detail-empty">no note for this day</div>`;
+
+  document.getElementById('cal-detail').classList.add('visible');
+}
+
+function buildCalLegend() {
+  const prof  = getActiveProfile();
+  const moods = prof?.moods || {};
+  const usedIds = new Set(Object.values(moods));
+
+  const legend = document.getElementById('cal-legend');
+  legend.innerHTML = '';
+  for (const m of MOOD_OPTIONS) {
+    if (!usedIds.has(m.id)) continue;
+    const item  = document.createElement('div');
+    item.className = 'cal-legend-item';
+    item.innerHTML = `<div class="cal-legend-dot" style="background:${m.color}"></div>
+                      <div class="cal-legend-label">${m.label}</div>`;
+    legend.appendChild(item);
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// INTERACTION  (raycast — enclosure zone)
+// ════════════════════════════════════════════════════════
+const raycaster = new THREE.Raycaster();
+const RAY_CENTRE = new THREE.Vector2(0, 0);
+
+// Invisible interaction target for the enclosure
+const enclosureTarget = new THREE.Mesh(
+  new THREE.BoxGeometry(ENC.w, ENC.h+ENC.standH, ENC.d),
+  new THREE.MeshBasicMaterial({ visible: false })
+);
+enclosureTarget.position.set(ENC.x, (ENC.h+ENC.standH)/2, ENC.z);
+scene.add(enclosureTarget);
+
+const interactPrompt  = document.getElementById('interact-prompt');
+const heldItemBar     = document.getElementById('held-item-bar');
+const hibLabel        = document.getElementById('hib-label');
+let lookingAtEnclosure = false;
+
+// ════════════════════════════════════════════════════════
+// CARE & BONDING  (Stage 7)
+// ════════════════════════════════════════════════════════
+
+const CARE_DEFS = [
+  { id: 'treats',   label: 'treat jar',      cagePrompt: h => `give treats to ${h}`,   trustGain: 3, pos: [-3.2, 0.95, -3.4], fpPos: [0.26, -0.20, -0.40], fpScale: 4.0  },
+  { id: 'bedding',  label: 'bedding bag',     cagePrompt: () => 'change the bedding',   trustGain: 2, pos: [-5.6, 0.70,  2.6], fpPos: [0.22, -0.24, -0.48], fpScale: 0.14 },
+  { id: 'cleaner',  label: 'cleaning cloth',  cagePrompt: () => 'wipe the cage',        trustGain: 2, pos: [ 0.6, 0.08,  0.8], fpPos: [0.28, -0.18, -0.42], fpScale: 2.5  },
+  { id: 'musicbox', label: 'music box',       cagePrompt: () => 'play music for them',  trustGain: 2, pos: [-4.2, 0.08, -1.2], fpPos: [0.24, -0.22, -0.44], fpScale: 3.5  },
+  { id: 'sketch',   label: 'sketchbook',      cagePrompt: h => `show drawing to ${h}`,  trustGain: 2, pos: [-5.0, 0.05,  1.0], fpPos: [0.20, -0.26, -0.46], fpScale: 2.8  },
+];
+const HOLD_TRUST_REQ = 35;  // minimum trust to hold the hamster
+
+const careMeshes = {};   // id → THREE.Group
+let heldItem     = null; // null | care def id
+let nearCareItem = null; // null | care def id (proximity)
+
+function buildCareItems() {
+  // Treat jar — small amber glass jar on side table
+  {
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.055, 0.050, 0.11, 14),
+      new THREE.MeshStandardMaterial({ color: 0xd4a030, roughness: 0.25, transparent: true, opacity: 0.72 })
+    );
+    const lid = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.062, 0.062, 0.022, 14),
+      new THREE.MeshStandardMaterial({ color: 0x9a6820, roughness: 0.55 })
+    );
+    lid.position.y = 0.066;
+    g.add(body); g.add(lid);
+    g.position.set(...CARE_DEFS[0].pos);
+    g.visible = false;
+    scene.add(g);
+    careMeshes.treats = g;
+  }
+  // Bedding bag — big paper bag on floor near left wall
+  {
+    const g = new THREE.Group();
+    const bag = new THREE.Mesh(
+      new THREE.BoxGeometry(1.10, 1.40, 0.76),
+      new THREE.MeshStandardMaterial({ color: 0xd8c49a, roughness: 0.95 })
+    );
+    const fold = new THREE.Mesh(
+      new THREE.BoxGeometry(1.10, 0.20, 0.76),
+      new THREE.MeshStandardMaterial({ color: 0xc2a87a, roughness: 0.95 })
+    );
+    fold.position.y = 0.80; fold.rotation.z = 0.06;
+    const strip = new THREE.Mesh(
+      new THREE.BoxGeometry(0.60, 0.20, 0.05),
+      new THREE.MeshStandardMaterial({ color: 0x8aaa70, roughness: 0.80 })
+    );
+    strip.position.set(0, 0.25, 0.40);
+    g.add(bag); g.add(fold); g.add(strip);
+    g.position.set(...CARE_DEFS[1].pos);
+    g.visible = false;
+    scene.add(g);
+    careMeshes.bedding = g;
+  }
+  // Cleaning cloth — rolled cloth on floor in front of cage area
+  {
+    const g = new THREE.Group();
+    // Main roll (lying on side)
+    const roll = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.055, 0.055, 0.22, 12),
+      new THREE.MeshStandardMaterial({ color: 0xeee4d8, roughness: 0.82 })
+    );
+    roll.rotation.z = Math.PI / 2;
+    // End cap ring (makes it look like a wrapped cloth)
+    const cap = new THREE.Mesh(
+      new THREE.TorusGeometry(0.055, 0.010, 8, 16),
+      new THREE.MeshStandardMaterial({ color: 0xc8b8a0, roughness: 0.85 })
+    );
+    cap.position.x = 0.11;
+    g.add(roll); g.add(cap);
+    g.position.set(...CARE_DEFS[2].pos);
+    g.visible = false;
+    scene.add(g);
+    careMeshes.cleaner = g;
+  }
+  // Music box — small wooden box with a tiny crank
+  {
+    const g = new THREE.Group();
+    const box = new THREE.Mesh(
+      new THREE.BoxGeometry(0.13, 0.08, 0.10),
+      new THREE.MeshStandardMaterial({ color: 0xa06830, roughness: 0.70 })
+    );
+    const lid = new THREE.Mesh(
+      new THREE.BoxGeometry(0.13, 0.012, 0.10),
+      new THREE.MeshStandardMaterial({ color: 0xb87840, roughness: 0.55 })
+    );
+    lid.position.y = 0.046;
+    const inlay = new THREE.Mesh(
+      new THREE.BoxGeometry(0.08, 0.004, 0.06),
+      new THREE.MeshStandardMaterial({ color: 0xd4a860, roughness: 0.40 })
+    );
+    inlay.position.y = 0.053;
+    const crank = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.006, 0.006, 0.05, 6),
+      new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.45, metalness: 0.5 })
+    );
+    crank.rotation.z = Math.PI / 2;
+    crank.position.set(0.075, 0.01, 0);
+    g.add(box); g.add(lid); g.add(inlay); g.add(crank);
+    g.position.set(...CARE_DEFS[3].pos);
+    g.visible = false;
+    scene.add(g);
+    careMeshes.musicbox = g;
+  }
+  // Sketchbook — small flat notebook lying on the floor
+  {
+    const g = new THREE.Group();
+    const cover = new THREE.Mesh(
+      new THREE.BoxGeometry(0.18, 0.015, 0.14),
+      new THREE.MeshStandardMaterial({ color: 0x7a9070, roughness: 0.85 })
+    );
+    const pages = new THREE.Mesh(
+      new THREE.BoxGeometry(0.165, 0.010, 0.125),
+      new THREE.MeshStandardMaterial({ color: 0xf0ece4, roughness: 0.95 })
+    );
+    pages.position.y = 0.012;
+    const spine = new THREE.Mesh(
+      new THREE.BoxGeometry(0.018, 0.016, 0.14),
+      new THREE.MeshStandardMaterial({ color: 0x5a6e52, roughness: 0.80 })
+    );
+    spine.position.x = -0.09;
+    g.add(cover); g.add(pages); g.add(spine);
+    g.position.set(...CARE_DEFS[4].pos);
+    g.visible = false;
+    scene.add(g);
+    careMeshes.sketch = g;
+  }
+}
+
+// ── Care particle system ──────────────────────────────
+const careParticles = [];
+
+function spawnCareParticles(x, y, z, count, color, spread, upSpeed) {
+  for (let i = 0; i < count; i++) {
+    const r = 0.018 + Math.random() * 0.022;
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(r, 5, 5),
+      new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.6,
+                                       transparent: true, opacity: 1 })
+    );
+    mesh.position.set(
+      x + (Math.random() - 0.5) * spread,
+      y + Math.random() * 0.3,
+      z + (Math.random() - 0.5) * spread
+    );
+    const vel = {
+      x: (Math.random() - 0.5) * 1.0,
+      y: upSpeed + Math.random() * 1.4,
+      z: (Math.random() - 0.5) * 1.0
+    };
+    scene.add(mesh);
+    careParticles.push({ mesh, vel, life: 0.8 + Math.random() * 0.5 });
+  }
+}
+
+function updateCareParticles(dt) {
+  for (let i = careParticles.length - 1; i >= 0; i--) {
+    const p = careParticles[i];
+    p.life -= dt * 1.1;
+    p.vel.y -= dt * 3.5;
+    p.mesh.position.x += p.vel.x * dt;
+    p.mesh.position.y += p.vel.y * dt;
+    p.mesh.position.z += p.vel.z * dt;
+    p.mesh.material.opacity = Math.max(0, p.life);
+    p.mesh.scale.setScalar(0.5 + p.life * 0.5);
+    if (p.life <= 0) { scene.remove(p.mesh); careParticles.splice(i, 1); }
+  }
+}
+
+// Flash overlay for cleaning effect
+function flashScreen(color, duration) {
+  const el = document.createElement('div');
+  el.style.cssText = `position:fixed;inset:0;background:${color};pointer-events:none;z-index:199;opacity:0.38;transition:opacity ${duration}ms ease`;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => { el.style.opacity = '0'; });
+  setTimeout(() => el.remove(), duration + 50);
+}
+
+function triggerCareEffect(id) {
+  const cx = ENC.x, cy = ENC.standH + 0.2, cz = ENC.z;
+  if (id === 'treats') {
+    // Golden treat pellets flying into cage
+    spawnCareParticles(cx, cy + 0.8, cz, 18, 0xe8c060, 1.2, 0.6);
+    spawnCareParticles(cx, cy + 0.5, cz, 10, 0xd4a030, 0.8, 0.3);
+  } else if (id === 'bedding') {
+    // Sandy/earthy dust pouring in
+    spawnCareParticles(cx, cy + 1.2, cz, 24, 0xc8aa78, 1.6, -0.2);
+    spawnCareParticles(cx, cy + 0.8, cz, 16, 0xe0ccaa, 1.2, -0.4);
+    spawnCareParticles(cx, cy + 0.4, cz, 12, 0xb89860, 0.8, -0.1);
+  } else if (id === 'cleaner') {
+    // Sparkle / shine burst on glass
+    spawnCareParticles(cx, cy + 0.9, cz + TANK.hd, 20, 0xe8f4ff, 0.6, 0.8);
+    spawnCareParticles(cx, cy + 0.5, cz + TANK.hd, 14, 0xffffff, 0.4, 0.5);
+    flashScreen('rgba(220,240,255,1)', 500);
+  }
+}
+
+// Bobbing for world items; sway for held FPS item
+function animateCareItems(t) {
+  for (const def of CARE_DEFS) {
+    const m = careMeshes[def.id];
+    if (!m || !m.visible) continue;
+    if (def.id === heldItem) {
+      // Gentle sway in camera space
+      m.position.set(
+        def.fpPos[0] + Math.sin(t * 1.1) * 0.007,
+        def.fpPos[1] + Math.sin(t * 1.8) * 0.006,
+        def.fpPos[2]
+      );
+      m.rotation.z = Math.sin(t * 1.3) * 0.025;
+    } else {
+      m.position.y = def.pos[1] + Math.sin(t * 1.4 + CARE_DEFS.indexOf(def)) * 0.012;
+      m.rotation.y += 0.008;
+    }
+  }
+}
+
+function checkCareInteraction() {
+  if (GAME_STATE !== 'playing' || !controls.isLocked) return;
+
+  const px = camera.position.x, pz = camera.position.z;
+
+  // Check proximity to each item on the floor
+  let foundItem = null;
+  if (!heldItem) {
+    for (const def of CARE_DEFS) {
+      const m = careMeshes[def.id];
+      if (!m || !m.visible) continue;
+      const dx = px - def.pos[0], dz = pz - def.pos[2];
+      if (Math.sqrt(dx*dx + dz*dz) < 1.4) { foundItem = def.id; break; }
+    }
+  }
+
+  // Check proximity to enclosure (for using held item or holding hamster)
+  const ex = px - ENC.x, ez = pz - ENC.z;
+  const nearCage = Math.sqrt(ex*ex + ez*ez) < 3.2;
+
+  nearCareItem = foundItem;
+
+  const hamName = window.hamsterName || 'them';
+
+  // Decide what prompt to show (or hide)
+  if (foundItem) {
+    const def = CARE_DEFS.find(d => d.id === foundItem);
+    interactPrompt.textContent = `[E] pick up ${def.label}`;
+    interactPrompt.classList.add('visible');
+    lookingAtEnclosure = false;
+    return true;
+  } else if (heldItem && nearCage) {
+    const def = CARE_DEFS.find(d => d.id === heldItem);
+    interactPrompt.textContent = `[E] ${def.cagePrompt(hamName)}`;
+    interactPrompt.classList.add('visible');
+    lookingAtEnclosure = true;
+    return true;
+  } else if (nearCage) {
+    // Near cage with no item — hold or talk
+    const ai = hamAI.behavior;
+    const calmEnough = ai===B.IDLE||ai===B.APPROACH||ai===B.STAY_NEAR||ai===B.EAT||ai===B.DRINK;
+    const prof  = getActiveProfile();
+    const today = dateKey(new Date());
+    const used  = prof?.careUsed?.[today] || [];
+    const canHold = hamState.trust >= HOLD_TRUST_REQ && calmEnough && !used.includes('hold');
+    interactPrompt.textContent = canHold
+      ? `[E] gently hold ${hamName}  ·  talk to them`
+      : `${hamName}'s home  ·  [E] talk to them`;
+    interactPrompt.classList.add('visible');
+    lookingAtEnclosure = true;
+    return true;
+  } else {
+    interactPrompt.textContent = '';
+    interactPrompt.classList.remove('visible');
+    lookingAtEnclosure = false;
+    return false;
+  }
+}
+
+function pickupCareItem(id) {
+  const def = CARE_DEFS.find(d => d.id === id);
+  if (!def) return;
+  const mesh = careMeshes[id];
+  // Reparent from scene into camera (FPS viewmodel)
+  scene.remove(mesh);
+  mesh.rotation.set(0.05, -0.25, 0.04);
+  mesh.position.set(...def.fpPos);
+  mesh.scale.setScalar(def.fpScale);
+  mesh.visible = true;
+  camera.add(mesh);
+  heldItem = id;
+  hibLabel.textContent = `holding ${def.label}`;
+  heldItemBar.classList.add('visible');
+  interactPrompt.classList.remove('visible');
+}
+
+function useCareItem() {
+  const def = CARE_DEFS.find(d => d.id === heldItem);
+  if (!def) return;
+
+  const today = dateKey(new Date());
+  const prof  = getActiveProfile();
+  const used  = prof?.careUsed?.[today] || [];
+
+  if (used.includes(heldItem)) {
+    // Already used today — drop silently
+    dropCareItem();
+    return;
+  }
+
+  // Apply effect
+  gainTrust(def.trustGain);
+  used.push(heldItem);
+  upsertActiveProfile({ careUsed: { ...(prof?.careUsed || {}), [today]: used } });
+
+  // Particles + hamster reaction
+  triggerCareEffect(heldItem);
+
+  if (heldItem === 'treats') {
+    startBehavior(B.EAT);
+    const name = window.hamsterName || 'they';
+    const msgs = [
+      `${name} ran right over ♡`,
+      'little cheeks are filling up ♡',
+      `${name} loves treats ♡`,
+      'nibble nibble nibble ♡',
+      'those tiny paws are grabbing everything ♡',
+      `${name} is so happy right now ♡`,
+    ];
+    const msg = msgs[Math.floor(Math.random() * msgs.length)];
+    setCaption(msg, 200);
+    setTimeout(clearCaption, 2800);
+  } else if (heldItem === 'bedding') {
+    startBehavior(B.BURROW);
+    setTimeout(() => startBehavior(B.IDLE), 4000);
+    const name = window.hamsterName || 'they';
+    const msgs = [
+      `${name} is already digging in ♡`,
+      'fresh bedding, happy hamster ♡',
+      `${name} loves a clean nest ♡`,
+      'burrowing immediately ♡',
+      'cozy and content ♡',
+      `${name} is fluffing it all up ♡`,
+    ];
+    setCaption(msgs[Math.floor(Math.random() * msgs.length)], 200);
+    setTimeout(clearCaption, 2800);
+  } else if (heldItem === 'cleaner') {
+    startBehavior(B.HIDE);
+    setTimeout(() => startBehavior(B.EXPLORE), 3500);
+    const name = window.hamsterName || 'they';
+    const msgs = [
+      `${name} watched you the whole time ♡`,
+      'sparkling clean ♡',
+      `${name} sniffed every corner after ♡`,
+      'they noticed, they always notice ♡',
+      'a clean home is a happy home ♡',
+      `${name} came back out once it smelled right ♡`,
+    ];
+    setCaption(msgs[Math.floor(Math.random() * msgs.length)], 800);
+    setTimeout(clearCaption, 3000);
+  } else if (heldItem === 'musicbox') {
+    startBehavior(B.IDLE);
+    setTimeout(() => startBehavior(B.STAY_NEAR), 2500);
+    spawnCareParticles(ENC.x, ENC.standH + 1.0, ENC.z, 10, 0xd4c0f0, 1.0, 1.2);
+    const name = window.hamsterName || 'they';
+    const msgs = [
+      `${name} went very still ♡`,
+      'tiny ears perked right up ♡',
+      `${name} loves this song ♡`,
+      'they listened to every note ♡',
+      'soft music, soft hamster ♡',
+      `${name} closed their eyes ♡`,
+    ];
+    setCaption(msgs[Math.floor(Math.random() * msgs.length)], 400);
+    setTimeout(clearCaption, 3200);
+  } else if (heldItem === 'sketch') {
+    startBehavior(B.APPROACH);
+    setTimeout(() => startBehavior(B.STAY_NEAR), 3000);
+    spawnCareParticles(ENC.x, ENC.standH + 1.0, ENC.z, 8, 0xf0d890, 1.0, 1.0);
+    const name = window.hamsterName || 'they';
+    const msgs = [
+      `${name} sniffed the page ♡`,
+      'you drew them something beautiful ♡',
+      `${name} pressed their nose against the glass ♡`,
+      'they came right over to look ♡',
+      `${name} seemed impressed ♡`,
+      'a little art, just for them ♡',
+    ];
+    setCaption(msgs[Math.floor(Math.random() * msgs.length)], 400);
+    setTimeout(clearCaption, 3200);
+  }
+
+  dropCareItem();
+}
+
+function doHoldHamster() {
+  const today = dateKey(new Date());
+  const prof  = getActiveProfile();
+  const used  = prof?.careUsed?.[today] || [];
+  if (used.includes('hold')) return;
+
+  gainTrust(4);
+  used.push('hold');
+  upsertActiveProfile({ careUsed: { ...(prof?.careUsed || {}), [today]: used } });
+
+  startBehavior(B.APPROACH);
+  setTimeout(() => startBehavior(B.STAY_NEAR), 2000);
+  interactPrompt.classList.remove('visible');
+  const name = window.hamsterName || 'they';
+  const msgs = [
+    `${name} settled right into your hands ♡`,
+    'so small, so warm ♡',
+    `${name} trusts you ♡`,
+    'tiny heartbeat ♡',
+    'they didn\'t want to leave ♡',
+    `${name} closed their eyes for a moment ♡`,
+  ];
+  setCaption(msgs[Math.floor(Math.random() * msgs.length)], 300);
+  setTimeout(clearCaption, 3200);
+}
+
+function doWhistle() {
+  const px = camera.position.x, pz = camera.position.z;
+  const ex = px - ENC.x, ez = pz - ENC.z;
+  if (Math.sqrt(ex*ex + ez*ez) > 3.5) return;
+
+  const today = dateKey(new Date());
+  const prof  = getActiveProfile();
+  const used  = prof?.careUsed?.[today] || [];
+  if (used.includes('whistle')) {
+    setCaption('you already sang to them today ♡', 200);
+    setTimeout(clearCaption, 2200);
+    return;
+  }
+
+  gainTrust(1);
+  used.push('whistle');
+  upsertActiveProfile({ careUsed: { ...(prof?.careUsed || {}), [today]: used } });
+
+  startBehavior(B.APPROACH);
+  setTimeout(() => startBehavior(B.IDLE), 2800);
+  spawnCareParticles(ENC.x, ENC.standH + 1.2, ENC.z, 6, 0xf0e0a0, 0.8, 1.0);
+
+  const name = window.hamsterName || 'they';
+  const msgs = [
+    `${name} looked right at you ♡`,
+    '♩ they heard your little song ♡',
+    `${name} perked up their ears ♡`,
+    'a soft melody just for them ♡',
+    `${name} came closer to listen ♡`,
+    '♩ they always recognize your voice ♡',
+  ];
+  setCaption(msgs[Math.floor(Math.random() * msgs.length)], 300);
+  setTimeout(clearCaption, 2800);
+}
+
+// ── Secret panel ──────────────────────────────────────
+function getHamPersonality() {
+  const prof = getActiveProfile();
+  if (!prof) return null;
+  const r = salt => seededRand((prof.id || 'x') + salt) % 101;
+  return {
+    shyBold:     r('sb'),
+    curCaut:     r('cc'),
+    socIndep:    r('si'),
+    playCalm:    r('pc'),
+    senStable:   r('ss'),
+  };
+}
+
+function openSecretPanel() {
+  const prof = getActiveProfile();
+  if (!prof) return;
+
+  // Pause pointer lock if needed
+  if (controls.isLocked) controls.unlock();
+
+  // Trust
+  const trust = Math.round(hamState.trust);
+  document.getElementById('sp-hamname').textContent = window.hamsterName || 'little one';
+  document.getElementById('sp-trust-fill').style.width = trust + '%';
+  document.getElementById('sp-trust-num').textContent = trust + ' / 100';
+
+  // Personality traits
+  const p = getHamPersonality();
+  const traits = [
+    { left: 'shy',         right: 'bold',        val: p.shyBold  },
+    { left: 'cautious',    right: 'curious',      val: p.curCaut  },
+    { left: 'independent', right: 'social',       val: p.socIndep },
+    { left: 'calm',        right: 'playful',      val: p.playCalm },
+    { left: 'stable',      right: 'sensitive',    val: p.senStable},
+  ];
+  const traitsEl = document.getElementById('sp-traits');
+  traitsEl.innerHTML = '';
+  traits.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'sp-trait';
+    row.innerHTML = `
+      <span class="sp-trait-left">${t.left}</span>
+      <div class="sp-trait-track">
+        <div class="sp-trait-dot" style="left:${t.val}%"></div>
+      </div>
+      <span class="sp-trait-right">${t.right}</span>`;
+    traitsEl.appendChild(row);
+  });
+
+  // Stats
+  const moods   = prof.moods || {};
+  const moodKeys = Object.keys(moods);
+  const dayCount = moodKeys.length;
+  const moodCounts = {};
+  moodKeys.forEach(k => { const m = moods[k]; moodCounts[m] = (moodCounts[m] || 0) + 1; });
+  const topMood = Object.entries(moodCounts).sort((a,b) => b[1]-a[1])[0];
+  const topMoodLabel = topMood ? topMood[0] : '—';
+  const firstDay = moodKeys.length
+    ? moodKeys.sort()[0].replace(/(\d+)-(\d+)-(\d+)/, (_, y, m, d) =>
+        new Date(y, m-1, d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }))
+    : 'not yet';
+
+  const statsEl = document.getElementById('sp-stats');
+  statsEl.innerHTML = [
+    ['days journaled',   dayCount || '0'],
+    ['most common mood', topMoodLabel],
+    ['first entry',      firstDay],
+    ['care actions used', Object.values(prof.careUsed || {}).flat().length || '0'],
+    ['items in cage',    (prof.boughtItems || []).length + ' / 12'],
+  ].map(([l, v]) => `<div class="sp-stat-row"><span class="sp-stat-label">${l}</span><span class="sp-stat-val">${v}</span></div>`).join('');
+
+  document.getElementById('secret-overlay').classList.add('visible');
+}
+
+function closeSecretPanel() {
+  document.getElementById('secret-overlay').classList.remove('visible');
+  if (GAME_STATE === 'playing') controls.lock();
+}
+
+function dropCareItem() {
+  if (heldItem) {
+    const def = CARE_DEFS.find(d => d.id === heldItem);
+    const mesh = careMeshes[heldItem];
+    camera.remove(mesh);
+    mesh.rotation.set(0, 0, 0);
+    mesh.scale.set(1, 1, 1);
+    mesh.position.set(...def.pos);
+    mesh.visible = false;
+    scene.add(mesh);
+  }
+  heldItem = null;
+  heldItemBar.classList.remove('visible');
+  interactPrompt.classList.remove('visible');
+  lookingAtEnclosure = false;
+}
+
+function getCareItemsUsedToday() {
+  const prof  = getActiveProfile();
+  const today = dateKey(new Date());
+  return prof?.careUsed?.[today] || [];
+}
+
+// Hide items already used today when loading a profile
+function syncCareItemVisibility() {
+  const playing = GAME_STATE === 'playing';
+  const used = playing ? getCareItemsUsedToday() : [];
+  for (const def of CARE_DEFS) {
+    if (careMeshes[def.id]) careMeshes[def.id].visible = playing && !used.includes(def.id);
+  }
+}
+
+buildCareItems();
+
+function checkInteraction() {
+  if (!controls.isLocked) return;
+  if (GAME_STATE === 'setup') { checkSetupInteraction(); return; }
+
+  raycaster.setFromCamera(RAY_CENTRE, camera);
+
+  // Story: check box
+  if (GAME_STATE === 'story' && storyBoxTarget.parent) {
+    const bHits = raycaster.intersectObject(storyBoxTarget);
+    const nearBox = bHits.length > 0 && bHits[0].distance < 3.5;
+    if (nearBox !== lookingAtBox) {
+      lookingAtBox = nearBox;
+      if (storyPhase >= 1) {
+        interactPrompt.textContent = nearBox ? '[E] open it' : '';
+        interactPrompt.classList.toggle('visible', nearBox && storyPhase <= 3);
+      }
+    }
+    return;
+  }
+
+  // Playing: care items → shop → done
+  if (GAME_STATE === 'playing') {
+    const careClaimed = checkCareInteraction();
+    if (!careClaimed) checkShopInteraction();
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// DAILY SHOP  (Stage 7 extension)
+// ════════════════════════════════════════════════════════
+
+const SHOP_ITEM_POOL = [
+  { id:'succulent',    label:'tiny succulent',   price:2 },
+  { id:'sparkle_ball', label:'sparkle ball',     price:2 },
+  { id:'pinwheel',     label:'mini pinwheel',    price:3 },
+  { id:'tunnel',       label:'colorful tunnel',  price:3 },
+  { id:'mirror',       label:'little mirror',    price:3 },
+  { id:'ladder',       label:'wooden ladder',    price:4 },
+  { id:'bridge',       label:'tiny bridge',      price:4 },
+  { id:'flower_pot',   label:'flower pot',       price:4 },
+  { id:'bell',         label:'little bell',      price:3 },
+  { id:'cozy_den',     label:'cozy den',         price:5 },
+  { id:'cloud_bed',    label:'cloud bed',        price:4 },
+  { id:'gem_stone',    label:'crystal gem',      price:3 },
+];
+
+// 6 cage decoration spots (offset from cage center, y=floor)
+const CAGE_DECO_SPOTS = [
+  [ 1.0, 0,  0.55], [-1.0, 0,  0.55],
+  [ 1.0, 0, -0.55], [-1.0, 0, -0.55],
+  [ 0.0, 0,  0.70], [ 0.0, 0, -0.70],
+];
+
+// Shop pedestal world positions
+const SHOP_PED_POS = [[-1.4, 0, 4.2], [0, 0, 4.2], [1.4, 0, 4.2]];
+
+let shopPedGroups  = [];   // 3 pedestal + item groups in scene
+let shopItemGroups = [];   // item mesh groups (may be null if bought)
+let nearShopItem   = null; // index 0-2 or null
+let shopBuilt      = false;
+
+// Deterministic daily pick
+function seededRand(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 16777619) >>> 0; }
+  return h;
+}
+function getDailyShopItemIds() {
+  const today = dateKey(new Date());
+  const prof  = getActiveProfile();
+  if (prof?.shopState?.date === today) return prof.shopState.itemIds;
+  const seed  = seededRand(today + (prof?.id || ''));
+  const pool  = SHOP_ITEM_POOL.map(x => x.id);
+  const ids   = [];
+  let s = seed;
+  while (ids.length < 3 && pool.length) {
+    s = seededRand(String(s));
+    const i = s % pool.length;
+    ids.push(pool.splice(i, 1)[0]);
+  }
+  upsertActiveProfile({ shopState: { date: today, itemIds: ids } });
+  return ids;
+}
+
+function buildShopItemMesh(id) {
+  const g = new THREE.Group();
+  const mat = c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.85 });
+  if (id === 'succulent') {
+    g.add(Object.assign(new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.08,0.10,8),  mat(0xc87a40)), { position: { y: 0 } }));
+    const pl = new THREE.Mesh(new THREE.SphereGeometry(0.09,8,6), mat(0x5a9a50));
+    pl.scale.set(1,0.7,1); pl.position.y = 0.10; g.add(pl);
+  } else if (id === 'sparkle_ball') {
+    const b = new THREE.Mesh(new THREE.SphereGeometry(0.10,12,8),
+      new THREE.MeshStandardMaterial({color:0xf0c030,emissive:0xd0a020,emissiveIntensity:0.4,metalness:0.3,roughness:0.3}));
+    g.add(b);
+  } else if (id === 'pinwheel') {
+    const colors = [0xe06060,0x60a060,0x6090d0,0xe0c050];
+    for (let i = 0; i < 4; i++) {
+      const bl = new THREE.Mesh(new THREE.BoxGeometry(0.10,0.04,0.10), mat(colors[i]));
+      bl.rotation.y = i * Math.PI / 2;
+      bl.position.set(Math.cos(i*Math.PI/2)*0.07, 0.02, Math.sin(i*Math.PI/2)*0.07);
+      g.add(bl);
+    }
+    const st = new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.008,0.20,6), mat(0xc4a060));
+    st.position.y = -0.08; g.add(st);
+  } else if (id === 'tunnel') {
+    const t = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.10,0.10,0.24,12,1,true,0,Math.PI),
+      new THREE.MeshStandardMaterial({color:0xd05030,roughness:0.7,side:THREE.DoubleSide}));
+    t.rotation.z = Math.PI/2; g.add(t);
+  } else if (id === 'mirror') {
+    g.add(new THREE.Mesh(new THREE.TorusGeometry(0.09,0.016,8,16),
+      new THREE.MeshStandardMaterial({color:0xd4a840,roughness:0.3,metalness:0.5})));
+    const gl = new THREE.Mesh(new THREE.CircleGeometry(0.09,16),
+      new THREE.MeshStandardMaterial({color:0xd0e8f8,metalness:0.85,roughness:0.05}));
+    g.add(gl);
+  } else if (id === 'ladder') {
+    for (const sx of [-0.06,0.06]) {
+      const r = new THREE.Mesh(new THREE.CylinderGeometry(0.009,0.009,0.26,6), mat(0xb88850));
+      r.position.x = sx; g.add(r);
+    }
+    for (let i = 0; i < 5; i++) {
+      const rg = new THREE.Mesh(new THREE.CylinderGeometry(0.007,0.007,0.12,6), mat(0xd4a870));
+      rg.rotation.z = Math.PI/2; rg.position.y = -0.10 + i*0.05; g.add(rg);
+    }
+  } else if (id === 'bridge') {
+    const bm = mat(0xb8905a);
+    for (let i = 0; i < 5; i++) {
+      const pl = new THREE.Mesh(new THREE.BoxGeometry(0.20,0.018,0.045), bm);
+      const a = (i-2)*0.2;
+      pl.position.set(0, Math.cos(a)*0.06-0.06, i*0.045-0.09);
+      pl.rotation.x = a*0.45; g.add(pl);
+    }
+  } else if (id === 'flower_pot') {
+    g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.05,0.10,10), mat(0xd07040)));
+    for (const [fx,fz,fc] of [[0,0,0xff88aa],[0.04,0.03,0xffcc44],[-0.03,0.04,0xcc88ff]]) {
+      const fl = new THREE.Mesh(new THREE.SphereGeometry(0.030,7,5), mat(fc));
+      fl.position.set(fx, 0.11, fz); g.add(fl);
+    }
+  } else if (id === 'bell') {
+    g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.09,0.11,12,1,true),
+      new THREE.MeshStandardMaterial({color:0xd4c040,metalness:0.5,roughness:0.3})));
+    const cl = new THREE.Mesh(new THREE.SphereGeometry(0.020,8,6),
+      new THREE.MeshStandardMaterial({color:0xb09020,metalness:0.6,roughness:0.25}));
+    cl.position.y = -0.08; g.add(cl);
+  } else if (id === 'cozy_den') {
+    g.add(new THREE.Mesh(new THREE.SphereGeometry(0.11,12,8,0,Math.PI*2,0,Math.PI/2), mat(0xd4b0a0)));
+    const fl = new THREE.Mesh(new THREE.CircleGeometry(0.11,12), mat(0xc0a090));
+    fl.rotation.x = -Math.PI/2; g.add(fl);
+    const dr = new THREE.Mesh(new THREE.CylinderGeometry(0.038,0.038,0.055,8,1,true,-Math.PI/4,Math.PI/2),
+      mat(0x80604a)); dr.position.set(0,0.028,0.11); g.add(dr);
+  } else if (id === 'cloud_bed') {
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(0.20,0.04,0.15), mat(0xf0e8ff)));
+    for (const [cx,cz] of [[-0.05,0],[0.05,0],[0,-0.04],[0,0.04]]) {
+      const p = new THREE.Mesh(new THREE.SphereGeometry(0.05,8,6), mat(0xf8f0ff));
+      p.position.set(cx,0.05,cz); p.scale.set(1,0.58,0.88); g.add(p);
+    }
+  } else if (id === 'gem_stone') {
+    g.add(new THREE.Mesh(new THREE.OctahedronGeometry(0.095),
+      new THREE.MeshStandardMaterial({color:0x88d0f0,metalness:0.3,roughness:0.05,transparent:true,opacity:0.82})));
+  }
+  return g;
+}
+
+function clearShop() {
+  for (const pg of shopPedGroups) scene.remove(pg);
+  shopPedGroups = []; shopItemGroups = []; nearShopItem = null; shopBuilt = false;
+  document.getElementById('points-display').classList.remove('visible');
+}
+
+function buildDailyShop() {
+  clearShop();
+  const ids     = getDailyShopItemIds();
+  const prof    = getActiveProfile();
+  const bought  = prof?.boughtItems || [];
+  const pedMat  = new THREE.MeshStandardMaterial({ color: 0xd4c8b8, roughness: 0.90 });
+  const platMat = new THREE.MeshStandardMaterial({ color: 0xc8bca8, roughness: 0.85 });
+
+  ids.forEach((id, i) => {
+    const def = SHOP_ITEM_POOL.find(x => x.id === id);
+    const [px, , pz] = SHOP_PED_POS[i];
+
+    const pg = new THREE.Group();
+    // Pedestal stem
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.10,0.12,0.72,12), pedMat);
+    stem.position.y = 0.36; pg.add(stem);
+    // Platform top
+    const plat = new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.15,0.06,14), platMat);
+    plat.position.y = 0.75; pg.add(plat);
+
+    // Item mesh (hidden/ghosted if already bought)
+    const isMesh = buildShopItemMesh(id);
+    isMesh.position.y = 0.80;
+    if (bought.includes(id)) {
+      isMesh.traverse(c => { if (c.isMesh) { c.material = c.material.clone(); c.material.transparent = true; c.material.opacity = 0.28; } });
+    }
+    pg.add(isMesh);
+    shopItemGroups.push(isMesh);
+
+    // Glow sphere (price color hint)
+    const priceCol = [0x88cc80,0x88cc80,0xd4b840,0xd4b840,0xe07840,0xe07840][Math.min(def.price-1,5)];
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.04,8,6),
+      new THREE.MeshStandardMaterial({color:priceCol,emissive:priceCol,emissiveIntensity:0.6,transparent:true,opacity:0.80}));
+    glow.position.set(0.14, 1.08, 0);
+    pg.add(glow);
+
+    pg.position.set(px, 0, pz);
+    scene.add(pg);
+    shopPedGroups.push(pg);
+    OBSTACLES.push({ x0: px-0.16+0.20, x1: px+0.16-0.20, z0: pz-0.16+0.20, z1: pz+0.16-0.20 });
+  });
+
+  shopBuilt = true;
+  updatePointsDisplay();
+}
+
+function animateShopItems(t) {
+  shopItemGroups.forEach((g, i) => {
+    if (!g) return;
+    g.position.y = 0.80 + Math.sin(t * 1.2 + i * 1.1) * 0.018;
+    g.rotation.y += 0.007;
+  });
+}
+
+function checkShopInteraction() {
+  if (!shopBuilt || !controls.isLocked) return false;
+  const px = camera.position.x, pz = camera.position.z;
+  let found = null;
+  SHOP_PED_POS.forEach(([x,,z], i) => {
+    const dx = px-x, dz = pz-z;
+    if (Math.sqrt(dx*dx+dz*dz) < 1.6) found = i;
+  });
+  nearShopItem = found;
+  if (found === null) { interactPrompt.classList.remove('visible'); return false; }
+
+  const ids    = getDailyShopItemIds();
+  const id     = ids[found];
+  const def    = SHOP_ITEM_POOL.find(x => x.id === id);
+  const prof   = getActiveProfile();
+  const bought = prof?.boughtItems || [];
+  const pts    = prof?.points || 0;
+
+  if (bought.includes(id)) {
+    interactPrompt.textContent = `${def.label}  ·  already in the cage`;
+  } else if (pts < def.price) {
+    interactPrompt.textContent = `${def.label}  ·  ${def.price} pts  (need ${def.price - pts} more)`;
+  } else {
+    interactPrompt.textContent = `[E] add ${def.label} to cage  ·  ${def.price} pts`;
+  }
+  interactPrompt.classList.add('visible');
+  return true;
+}
+
+function buyShopItem(idx) {
+  const ids  = getDailyShopItemIds();
+  const id   = ids[idx];
+  const def  = SHOP_ITEM_POOL.find(x => x.id === id);
+  const prof = getActiveProfile();
+  const pts  = prof?.points || 0;
+  const bought = prof?.boughtItems || [];
+
+  if (bought.includes(id) || pts < def.price) return;
+
+  const newBought = [...bought, id];
+  upsertActiveProfile({ points: pts - def.price, boughtItems: newBought });
+
+  // Ghost the pedestal item
+  const iMesh = shopItemGroups[idx];
+  if (iMesh) iMesh.traverse(c => { if (c.isMesh) { c.material = c.material.clone(); c.material.transparent = true; c.material.opacity = 0.28; } });
+
+  // Place in cage
+  placeBoughtItemInCage(id, newBought.length - 1);
+  updatePointsDisplay();
+  interactPrompt.classList.remove('visible');
+
+  const name = window.hamsterName || 'they';
+  const msgs = [
+    `${name} is already inspecting it ♡`,
+    'new thing in the cage ♡',
+    `${name} sniffed it immediately ♡`,
+    'a little upgrade ♡',
+    `${name} seems pleased ♡`,
+  ];
+  setCaption(msgs[Math.floor(Math.random() * msgs.length)], 200);
+  setTimeout(clearCaption, 2600);
+}
+
+function placeBoughtItemInCage(id, slotIdx) {
+  const spot = CAGE_DECO_SPOTS[slotIdx % CAGE_DECO_SPOTS.length];
+  const mesh = buildShopItemMesh(id);
+  mesh.scale.setScalar(0.72);
+  mesh.position.set(ENC.x + spot[0], ENC.standH + 0.04, ENC.z + spot[2]);
+  cageRoot.add(mesh);
+}
+
+function loadBoughtItems() {
+  const prof   = getActiveProfile();
+  const bought = prof?.boughtItems || [];
+  bought.forEach((id, i) => placeBoughtItemInCage(id, i));
+}
+
+function updatePointsDisplay() {
+  const prof = getActiveProfile();
+  const pts  = prof?.points || 0;
+  document.getElementById('pts-count').textContent = pts;
+  document.getElementById('points-display').classList.toggle('visible', GAME_STATE === 'playing');
+}
+
+// ════════════════════════════════════════════════════════
+
+const PROFILES_KEY = 'hamster-profiles';
+let activeProfileId = null;
+
+function loadAllProfiles() {
+  try { return JSON.parse(localStorage.getItem(PROFILES_KEY)) || []; } catch (_) { return []; }
+}
+
+function saveAllProfiles(profiles) {
+  try { localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles)); } catch (_) {}
+}
+
+function getActiveProfile() {
+  const profiles = loadAllProfiles();
+  return profiles.find(p => p.id === activeProfileId) || null;
+}
+
+function upsertActiveProfile(updates) {
+  const profiles = loadAllProfiles();
+  const idx = profiles.findIndex(p => p.id === activeProfileId);
+  if (idx >= 0) { profiles[idx] = { ...profiles[idx], ...updates }; saveAllProfiles(profiles); }
+}
+
+// Override todayKey to be per-profile
+function todayKey() {
+  const d = new Date();
+  const base = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  return `hamster-mood-${activeProfileId || 'default'}-${base}`;
+}
+
+function saveMoodToProfile(moodId, note) {
+  const key  = dateKey(new Date());
+  const prof = getActiveProfile();
+  if (!prof) return;
+  const moods = prof.moods || {};
+  moods[key] = moodId;
+  const moodNotes = prof.moodNotes || {};
+  if (note) moodNotes[key] = note;
+  else delete moodNotes[key];
+  upsertActiveProfile({ moods, moodNotes });
+}
+
+// ── Profile UI ───────────────────────────────────────────
+const MOOD_COLOURS = {
+  happy:'#d4b060', excited:'#c87840', calm:'#88b8d0', neutral:'#b0a898',
+  tired:'#9898a8', nervous:'#a8b870', anxious:'#b89858',
+  overwhelmed:'#c87070', sad:'#8890b8'
+};
+
+function hexToCSS(hex) {
+  return '#' + hex.toString(16).padStart(6, '0');
+}
+
+function renderProfileCards() {
+  const profiles = loadAllProfiles();
+  const container = document.getElementById('profile-cards');
+  container.innerHTML = '';
+
+  profiles.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'profile-card';
+
+    const bodyColHex = p.hamAppearance
+      ? hexToCSS(HAM_COLOURS[p.hamAppearance.colIdx]?.body || 0xc4823a)
+      : '#c4823a';
+
+    const d = new Date();
+    const todayK = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    const todayMood = p.moods?.[todayK];
+    const dotColor = todayMood ? (MOOD_COLOURS[todayMood] || '#a8b870') : 'rgba(180,155,110,0.25)';
+    const hamName = p.hamsterName || 'little one';
+
+    // Normal face
+    function showNormalFace() {
+      card.style.cursor = 'pointer';
+      card.innerHTML = `
+        <button class="profile-delete-btn" title="delete profile">✕</button>
+        <div class="profile-avatar" style="background:${bodyColHex}22;border:1.5px solid ${bodyColHex}55">
+          <span style="font-size:1.6rem">🐹</span>
+        </div>
+        <div class="profile-hamname">${hamName}</div>
+        <div class="profile-ownername">${p.ownerName || ''}</div>
+        <div class="profile-mood-dot" style="background:${dotColor}" title="${todayMood ? 'feeling ' + todayMood + ' today' : 'no check-in today'}"></div>`;
+      card.querySelector('.profile-delete-btn').onclick = e => { e.stopPropagation(); showConfirmFace(); };
+      card.onclick = () => selectProfile(p.id);
+    }
+
+    // Confirmation face — must type hamster name to confirm
+    function showConfirmFace() {
+      card.style.cursor = 'default';
+      card.onclick = null;
+      card.innerHTML = `
+        <div class="profile-card-confirm">
+          <div class="confirm-label">type <strong>${hamName}</strong><br>to delete</div>
+          <input class="confirm-input" type="text" placeholder="${hamName}..." maxlength="24" autocomplete="off">
+          <div class="confirm-row">
+            <button class="confirm-yes" disabled>delete</button>
+            <button class="confirm-no">keep</button>
+          </div>
+        </div>`;
+
+      const input = card.querySelector('.confirm-input');
+      const yesBtn = card.querySelector('.confirm-yes');
+      const noBtn  = card.querySelector('.confirm-no');
+
+      input.onclick = e => e.stopPropagation();
+      input.oninput = () => {
+        yesBtn.disabled = input.value.trim().toLowerCase() !== hamName.toLowerCase();
+      };
+      yesBtn.onclick = e => { e.stopPropagation(); deleteProfile(p.id); };
+      noBtn.onclick  = e => { e.stopPropagation(); showNormalFace(); };
+      setTimeout(() => input.focus(), 40);
+    }
+
+    showNormalFace();
+    container.appendChild(card);
+  });
+
+  // New profile card
+  const newCard = document.createElement('div');
+  newCard.className = 'profile-card new-profile';
+  newCard.innerHTML = `
+    <div class="profile-avatar" style="background:rgba(200,165,100,0.08);border:1.5px dashed rgba(200,165,100,0.30)">
+      <span style="font-size:1.4rem;color:rgba(200,165,100,0.5)">+</span>
+    </div>
+    <div class="profile-hamname" style="color:rgba(200,165,100,0.55)">new hamster</div>`;
+  newCard.onclick = showOwnerNameScreen;
+  container.appendChild(newCard);
+}
+
+function deleteProfile(id) {
+  const profiles = loadAllProfiles().filter(p => p.id !== id);
+  saveAllProfiles(profiles);
+  // If deleting the active profile, clear it
+  if (activeProfileId === id) activeProfileId = null;
+  // Re-render: if no profiles left, go to new-profile flow
+  if (profiles.length === 0) {
+    document.getElementById('profile-screen').classList.remove('visible');
+    showOwnerNameScreen();
+  } else {
+    renderProfileCards();
+  }
+}
+
+function showProfileScreen() {
+  // Close pause menu if open
+  document.getElementById('pause-menu').classList.remove('visible');
+  renderProfileCards();
+  document.getElementById('profile-screen').classList.add('visible');
+}
+
+function showOwnerNameScreen() {
+  document.getElementById('profile-screen').classList.remove('visible');
+  const screen = document.getElementById('owner-name-screen');
+  screen.classList.add('visible');
+  setTimeout(() => document.getElementById('owner-name-input').focus(), 80);
+  document.getElementById('owner-name-input').onkeydown = e => {
+    if (e.key === 'Enter') confirmOwnerName();
+    if (e.key === 'Escape') {
+      screen.classList.remove('visible');
+      document.getElementById('profile-screen').classList.add('visible');
+    }
+  };
+}
+
+window.confirmOwnerName = function() {
+  const ownerName = document.getElementById('owner-name-input').value.trim() || 'you';
+  document.getElementById('owner-name-screen').classList.remove('visible');
+  startNewProfile(ownerName);
+};
+
+function startNewProfile(ownerName) {
+  // Create a blank profile — will be fully populated after setup
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const profile = { id, ownerName, hamsterName: '', hamAppearance: null, setupChoices: null, setupDone: false, moods: {}, trust: 0 };
+  hamState.trust = 0;
+  const profiles = loadAllProfiles();
+  profiles.push(profile);
+  saveAllProfiles(profiles);
+  activeProfileId = id;
+  // Begin fresh story flow
+  beginStoryFlow();
+}
+
+function selectProfile(id) {
+  activeProfileId = id;
+  document.getElementById('profile-screen').classList.remove('visible');
+  const profiles = loadAllProfiles();
+  const prof = profiles.find(p => p.id === id);
+  if (!prof) return;
+
+  // Restore hamster name
+  window.hamsterName = prof.hamsterName || 'little one';
+
+  if (prof.setupDone && prof.hamAppearance) {
+    // If appearance was baked as the old forced default, re-randomize it
+    let app = prof.hamAppearance;
+    if (app.colIdx === 0 && app.patIdx === 0 && app.sizeIdx === 1 && !app.randomized) {
+      app = {
+        colIdx: Math.floor(Math.random() * HAM_COLOURS.length),
+        patIdx: Math.floor(Math.random() * HAM_PATTERNS.length),
+        sizeIdx: Math.floor(Math.random() * HAM_SIZES.length),
+        randomized: true
+      };
+      upsertActiveProfile({ hamAppearance: app });
+    }
+    const col = HAM_COLOURS[app.colIdx];
+    const pat = HAM_PATTERNS[app.patIdx];
+    const siz = HAM_SIZES[app.sizeIdx];
+    if (col && pat && siz) applyHamsterAppearance(col, pat, siz);
+
+    // Restore cage setup
+    if (prof.setupChoices) restoreCageSetup(prof.setupChoices);
+
+    // Restore trust
+    hamState.trust = prof.trust || 0;
+
+    // Restore today's mood
+    try {
+      const d = new Date();
+      const savedMood = prof.moods?.[`${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`];
+      if (savedMood && MOOD_OPTIONS.some(m => m.id === savedMood)) hamState.mood = savedMood;
+    } catch (_) {}
+
+    // Show the cage and hamster, jump straight to playing
+    cageRoot.visible = true;
+    hamGroup.visible = true;
+    startBehavior(B.IDLE);
+    GAME_STATE = 'playing';
+    syncCareItemVisibility();
+    buildDailyShop();
+    loadBoughtItems();
+    const so = document.getElementById('start-overlay');
+    so.style.display = 'flex';
+    requestAnimationFrame(() => { so.style.opacity = '1'; });
+  } else {
+    beginStoryFlow();
+  }
+}
+
+function restoreCageSetup(choices) {
+  cageRoot.visible = true;
+  applyBeddingTheme(BEDDING_THEMES[choices.bedding ?? 0]);
+  if (choices.hideout === 'house')     addWoodenHouse();
+  else if (choices.hideout === 'igloo') addCeramicIgloo();
+  else if (choices.hideout === 'logtunnel') addLogTunnel();
+  if (choices.food)  addFoodBowl(choices.food);
+  if (choices.water) addWaterContainer(choices.water);
+  if (choices.sand)  addSandBath(choices.sand);
+  if (choices.wheel) addWheel();
+  if (choices.branch) addBranch();
+}
+
+function beginStoryFlow() {
+  // Reset to story phase for a fresh start
+  GAME_STATE = 'story';
+  storyPhase = 0;
+  const so = document.getElementById('start-overlay');
+  so.style.display = 'flex';
+  requestAnimationFrame(() => { so.style.opacity = '1'; });
+}
+
+// ── Bootstrap: run on page load ──────────────────────────
+(function initAccounts() {
+  const profiles = loadAllProfiles();
+  if (profiles.length === 0) {
+    // First ever visit — skip profile screen, ask for owner name
+    showOwnerNameScreen();
+  } else {
+    showProfileScreen();
+  }
+})();
+
+// ════════════════════════════════════════════════════════
+// ANIMATE LOOP
+// ════════════════════════════════════════════════════════
+const clock = new THREE.Clock();
+
+(function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.1);
+  const t  = clock.getElapsedTime();
+
+  updateMovement(dt);
+  checkInteraction();
+  if (GAME_STATE === 'story') updateStoryBox(dt, t);
+  updateHamster(t, dt);
+  animateCareItems(t);
+  animateShopItems(t);
+  updateCareParticles(dt);
+
+  // Passive trust gain: +1 every 3 minutes of active play, saved every 60s
+  if (GAME_STATE === 'playing' && !moodOverlayOpen && !historyOverlayOpen) {
+    hamState.passiveTimer += dt;
+    hamState.passiveSaveTimer += dt;
+    if (hamState.passiveTimer >= 180) {
+      hamState.passiveTimer = 0;
+      gainTrust(1);
+    } else if (hamState.passiveSaveTimer >= 60) {
+      hamState.passiveSaveTimer = 0;
+      upsertActiveProfile({ trust: +hamState.trust.toFixed(2) });
+    }
+  }
+
+  renderer.render(scene, camera);
+})();
+
+</script>
+</body>
+</html>
