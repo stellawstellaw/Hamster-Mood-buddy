@@ -4191,7 +4191,7 @@ function checkCareInteraction() {
 
   // Check proximity to enclosure (for using held item or holding hamster)
   const ex = px - ENC.x, ez = pz - ENC.z;
-  const nearCage = Math.sqrt(ex*ex + ez*ez) < 3.2;
+  const nearCage = Math.sqrt(ex*ex + ez*ez) < 4.5;
 
   nearCareItem = foundItem;
 
