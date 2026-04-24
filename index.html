@@ -3146,7 +3146,7 @@ function advanceStory3D() {
     clearCaption();
     scene.remove(storyBoxGroup);
     scene.remove(storyBoxTarget);
-    applyDefaultCageAndName();
+    startSetup();
   }
 }
 
@@ -3504,6 +3504,7 @@ function selectSetupItem(item) {
 }
 
 function startSetup() {
+  GAME_STATE = 'setup';
   cageRoot.visible = false;
   buildBench();
   buildSetupItems();
