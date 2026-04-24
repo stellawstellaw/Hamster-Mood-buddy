@@ -1664,24 +1664,42 @@ scene.add(cageRoot);
 
 const ENC = { x: 3.4, z: -2.0, w: 4.2, d: 2.2, h: 2.0, standH: 0.9 };
 
+const cageCabMat     = new THREE.MeshStandardMaterial({ color: 0xb8845a, roughness: 0.82 });
+const cageCabFaceMat = new THREE.MeshStandardMaterial({ color: 0xc89a6a, roughness: 0.80 });
+const cageCabFtMat   = new THREE.MeshStandardMaterial({ color: 0x8a5c35, roughness: 0.85 });
+
+const CAGE_COLORS = [
+  { id: 'natural', label: 'natural wood', cab: 0xb8845a, face: 0xc89a6a, ft: 0x8a5c35 },
+  { id: 'dark',    label: 'dark walnut',  cab: 0x5c3820, face: 0x6e4228, ft: 0x3e2412 },
+  { id: 'white',   label: 'white ash',    cab: 0xe8e0d4, face: 0xf0ece4, ft: 0xd4ccc0 },
+  { id: 'sage',    label: 'sage wood',    cab: 0x7a9070, face: 0x8aa880, ft: 0x607050 },
+];
+
+function applyCageColor(idx) {
+  const c = CAGE_COLORS[idx ?? 0];
+  cageCabMat.color.setHex(c.cab);
+  cageCabFaceMat.color.setHex(c.face);
+  cageCabFtMat.color.setHex(c.ft);
+}
+
 // ── Wooden cabinet / stand ────────────────────────────
 {
   // Cabinet body
-  const cab = new THREE.Mesh(new THREE.BoxGeometry(ENC.w, ENC.standH, ENC.d), MAT.woodLt);
+  const cab = new THREE.Mesh(new THREE.BoxGeometry(ENC.w, ENC.standH, ENC.d), cageCabMat);
   cab.position.set(ENC.x, ENC.standH/2, ENC.z);
   cab.castShadow = cab.receiveShadow = true;
   cageRoot.add(cab);
 
   // Cabinet face panel (slightly lighter)
   const face = new THREE.Mesh(new THREE.BoxGeometry(ENC.w-0.1, ENC.standH-0.1, 0.04),
-    new THREE.MeshStandardMaterial({ color: 0xc89a6a, roughness: 0.8 }));
+    cageCabFaceMat);
   face.position.set(ENC.x, ENC.standH/2, ENC.z + ENC.d/2 + 0.02);
   cageRoot.add(face);
 
   // Cabinet feet
   for (const [fx, fz] of [[-ENC.w/2+0.15, -ENC.d/2+0.12],[ENC.w/2-0.15,-ENC.d/2+0.12],
                             [-ENC.w/2+0.15, ENC.d/2-0.12],[ENC.w/2-0.15, ENC.d/2-0.12]]) {
-    const ft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.08, 8), MAT.wood);
+    const ft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.08, 8), cageCabFtMat);
     ft.position.set(ENC.x+fx, 0.04, ENC.z+fz);
     cageRoot.add(ft);
   }
@@ -2652,9 +2670,6 @@ const BEDDING_THEMES = [
   { id:'natural', label:'natural', base:0xc8a878, cols:[0xd4b896,0xc8a87c,0xdec8a8,0xb89870,0xe8d4b8] },
   { id:'pink',    label:'pink',    base:0xd4909a, cols:[0xe0a8b0,0xd49098,0xecc0c8,0xc88090,0xf0ccd4] },
   { id:'lavender',label:'lavender',base:0xa8a0c0, cols:[0xb8b0d0,0xa8a0bc,0xd0c8e4,0x9890a8,0xe0d8f0] },
-  { id:'sage',    label:'sage',    base:0x98a890, cols:[0xa8b8a0,0x90a888,0xbcd0b4,0x889880,0xd0e0c8] },
-  { id:'cream',   label:'cream',   base:0xe0d8c8, cols:[0xe8e0d0,0xddd4c0,0xf0e8d8,0xd0c8b4,0xf8f0e4] },
-  { id:'lilac',   label:'lilac',   base:0xc0a8c8, cols:[0xd0b8d8,0xb8a0c0,0xe0c8e8,0xa890b0,0xf0d8f8] },
 ];
 
 // ── Pattern extra meshes — stored to remove on re-apply ──
@@ -3175,6 +3190,7 @@ const setupChoices = {
   hamIdx: 0, bedding: 0,
   hideout: 'house', food: 'seed', water: 'bottle',
   sandbath: null, wheel: false, branch: false,
+  cageColor: 0,
 };
 
 let setupItems = [];
@@ -3404,11 +3420,16 @@ function buildSetupItems() {
   addSetupItem(makeMiniFood('pellet'), 0.22, ZF, 'food', 'pellet', 'pellets',  0.08);
   addSetupItem(makeMiniFood('veggie'), 0.56, ZF, 'food', 'veggie', 'veggies',  0.08);
 
+  // Cage color (4 swatches)
+  addCategoryBase(0.80, 1.22, ZF, 0xa07848);
+  CAGE_COLORS.forEach((c, i) =>
+    addSetupItem(makeMiniSwatch(c.cab), 0.90 + i * 0.30, ZF, 'cagecolor', i, c.label, 0.07));
+
   // ── BACK ROW: bedding · water · sand · extras ──
-  // Bedding (6 swatches, cream base)
+  // Bedding (3 swatches, cream base)
   addCategoryBase(-2.10, -0.75, ZB, 0xd8c8b0);
   BEDDING_THEMES.forEach((t, i) =>
-    addSetupItem(makeMiniSwatch(t.base), -2.00 + i * 0.25, ZB, 'bedding', i, t.label, 0.07));
+    addSetupItem(makeMiniSwatch(t.base), -2.00 + i * 0.35, ZB, 'bedding', i, t.label, 0.07));
 
   // Water (3 items, blue base)
   addCategoryBase(-0.60, 0.28, ZB, 0x88b8d0);
@@ -3416,12 +3437,10 @@ function buildSetupItems() {
   addSetupItem(makeMiniWater('corner'), -0.18, ZB, 'water', 'corner', 'corner sipper', 0.07);
   addSetupItem(makeMiniWater('dish'),    0.16, ZB, 'water', 'dish',   'water dish',    0.07);
 
-  // Sand bath (4 items, sandy base)
-  addCategoryBase(0.38, 1.50, ZB, 0xd0c090);
+  // Sand bath (2 items)
+  addCategoryBase(0.38, 0.60, ZB, 0xd0c090);
   addSetupItem(makeMiniNone(),            0.48, ZB, 'sand', null,      'no sand bath', 0.07);
   addSetupItem(makeMiniSand('natural'),   0.78, ZB, 'sand', 'natural', 'natural sand', 0.08);
-  addSetupItem(makeMiniSand('pink'),      1.08, ZB, 'sand', 'pink',    'rose sand',    0.08);
-  addSetupItem(makeMiniSand('blue'),      1.38, ZB, 'sand', 'blue',    'mineral sand', 0.08);
 
   // Extras (2 items, sage base)
   addCategoryBase(1.60, 2.10, ZB, 0x90a880);
@@ -3461,6 +3480,10 @@ function selectSetupItem(item) {
     setupChoices.food = value;
     highlightSetupSelection('food', value);
     removeAcc('food'); addFoodBowl(value);
+  } else if (category === 'cagecolor') {
+    setupChoices.cageColor = value;
+    highlightSetupSelection('cagecolor', value);
+    applyCageColor(value);
   } else if (category === 'water') {
     setupChoices.water = value;
     highlightSetupSelection('water', value);
@@ -3481,7 +3504,7 @@ function selectSetupItem(item) {
 }
 
 function startSetup() {
-  cageRoot.visible = true;   // reveal empty cage
+  cageRoot.visible = false;
   buildBench();
   buildSetupItems();
   // Default selections
@@ -3542,16 +3565,19 @@ function openNamingScreen() {
 
 function finishSetup() {
   // Reveal hamster now that the cage is set up
+  cageRoot.visible = true;
   hamGroup.visible = true;
   startBehavior(B.IDLE);
   applyBeddingTheme(BEDDING_THEMES[setupChoices.bedding]);
+  applyCageColor(setupChoices.cageColor ?? 0);
   window.hamsterName = document.getElementById('ham-name-input').value.trim() || 'little one';
 
   // Persist completed profile
   upsertActiveProfile({
     hamsterName: window.hamsterName,
     setupChoices: { ...setupChoices },
-    setupDone: true
+    setupDone: true,
+    cageColor: setupChoices.cageColor ?? 0
   });
 
   if (setupBenchGroup) scene.remove(setupBenchGroup);
@@ -3632,13 +3658,13 @@ let selectedMoodId = null;
 
 // ── Helper: dateKey string for a Date object ─────────────
 function dateKey(d) {
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
 
 // ── Helper: human-readable date label ────────────────────
 function friendlyDate(key) {
   const [y, m, d] = key.split('-').map(Number);
-  const then = new Date(y, m, d);
+  const then = new Date(y, m - 1, d);
   const now  = new Date();
   const todayK   = dateKey(now);
   const yestDate = new Date(now); yestDate.setDate(now.getDate() - 1);
@@ -5191,6 +5217,7 @@ function selectProfile(id) {
 function restoreCageSetup(choices) {
   cageRoot.visible = true;
   applyBeddingTheme(BEDDING_THEMES[choices.bedding ?? 0]);
+  applyCageColor(choices.cageColor ?? 0);
   if (choices.hideout === 'house')     addWoodenHouse();
   else if (choices.hideout === 'igloo') addCeramicIgloo();
   else if (choices.hideout === 'logtunnel') addLogTunnel();
