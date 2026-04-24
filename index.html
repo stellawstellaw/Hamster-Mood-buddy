@@ -2133,6 +2133,7 @@ function lerpPawRest(dt, spd = 5) {
 function resetHamParts() {
   hamGroup.rotation.x = 0;
   hamGroup.rotation.z = 0;
+  hamGroup.scale.setScalar(1);  // restore from hideout shrink
   hamEarMeshes[0].rotation.z = 0;
   hamEarMeshes[1].rotation.z = 0;
   hamCheeks[0].scale.set(1, 0.82, 0.78);
@@ -2169,12 +2170,16 @@ function startBehavior(b) {
 
     case B.HIDE:
       if (accMeshes.hideout) {
-        // Run to the hideout
-        hamAI.tx = accMeshes.hideout.position.x;
-        hamAI.tz = accMeshes.hideout.position.z;
+        const h = accMeshes.hideout;
+        const edz = h.userData.entryDZ || 0;
+        const edx = h.userData.entryDX || 0;
+        // Stop at the door entrance, not the hideout center
+        hamAI.tx = Math.min(HAM_X1-0.05, Math.max(HAM_X0+0.05, h.position.x + edx));
+        hamAI.tz = Math.min(HAM_Z1-0.05, Math.max(HAM_Z0+0.05, h.position.z + edz));
+        hamAI._hideoutRef = h;
       } else {
-        // Safe corner — back wall, left side
         hamAI.tx = HAM_X0 + 0.08;  hamAI.tz = HAM_Z0 + 0.08;
+        hamAI._hideoutRef = null;
       }
       hamAI.moving = true;  hamAI.bDuration = 20;
       break;
@@ -2437,20 +2442,34 @@ function updateHamster(t, dt) {
         if (moveToward(dt, ai.tx, ai.tz)) {
           ai.phase = 1;  ai.subTimer = 0;
           ai.bDuration = ai.bTimer + 3.5 + Math.random() * 4.0;
+          // If entering hideout: face the door then step inside
+          if (ai._hideoutRef) {
+            const h = ai._hideoutRef;
+            hamAI.phase = 1;
+            // Target the inside center for the shrink-in slide
+            hamAI._insideX = h.position.x;
+            hamAI._insideZ = h.position.z;
+          }
         }
       } else {
         ai.subTimer += dt;
         hamGroup.position.y = HAM_CY;
-        const crT = Math.min(1, ai.subTimer / 0.55);
-        // Body flattens
-        hamBodyRef.scale.y = _lp(0.80, 0.52, crT) * (1 + Math.sin(t * 1.85) * 0.008);
-        // Ears pin back
-        hamEarMeshes[0].rotation.z = _lp(0, -0.50, crT);
-        hamEarMeshes[1].rotation.z = _lp(0,  0.50, crT);
-        // Whole body presses down and leans forward
-        hamGroup.rotation.x = _lp(0, 0.20, crT);
-        hamPawFL.position.y = _lp(-0.058, -0.068, crT);
-        hamPawFR.position.y = _lp(-0.058, -0.068, crT);
+        if (ai._hideoutRef) {
+          // Slide into hideout and shrink — looks like ducking inside
+          const inT = Math.min(1, ai.subTimer / 0.40);
+          hamGroup.position.x = _lp(hamGroup.position.x, ai._insideX, Math.min(1, dt * 6));
+          hamGroup.position.z = _lp(hamGroup.position.z, ai._insideZ, Math.min(1, dt * 6));
+          const sc = _lp(1.0, 0.12, inT);
+          hamGroup.scale.setScalar(sc);
+        } else {
+          const crT = Math.min(1, ai.subTimer / 0.55);
+          hamBodyRef.scale.y = _lp(0.80, 0.52, crT) * (1 + Math.sin(t * 1.85) * 0.008);
+          hamEarMeshes[0].rotation.z = _lp(0, -0.50, crT);
+          hamEarMeshes[1].rotation.z = _lp(0,  0.50, crT);
+          hamGroup.rotation.x = _lp(0, 0.20, crT);
+          hamPawFL.position.y = _lp(-0.058, -0.068, crT);
+          hamPawFR.position.y = _lp(-0.058, -0.068, crT);
+        }
       }
       break;
 
@@ -2783,6 +2802,7 @@ function addWoodenHouse() {
     new THREE.MeshStandardMaterial({ color: 0xd0e8f0, transparent: true, opacity: 0.5 }));
   win.position.set(0.06, 0.04, 0.112);  g.add(win);
   g.position.set(ENC.x + 0.65, HAM_FLOOR + 0.093, ENC.z + 0.28);
+  g.userData.entryDZ = 0.17;  // door faces +Z; stop this far in front
   cageRoot.add(g);  accMeshes.hideout = g;
 }
 
@@ -2817,6 +2837,7 @@ function addCeramicIgloo() {
     g.add(ring);
   }
   g.position.set(ENC.x + 0.65, HAM_FLOOR, ENC.z + 0.28);
+  g.userData.entryDZ = 0.22;  // tunnel entrance faces +Z
   cageRoot.add(g);  accMeshes.hideout = g;
 }
 
@@ -2854,6 +2875,7 @@ function addLogTunnel() {
     g.add(mark);
   }
   g.position.set(ENC.x + 0.65, HAM_FLOOR + 0.12, ENC.z + 0.28);
+  g.userData.entryDX = -0.20;  // log tunnel opens to the left side (-X)
   cageRoot.add(g);  accMeshes.hideout = g;
 }
 
@@ -3353,6 +3375,24 @@ function addCategoryBase(x0, x1, z, hexCol) {
   setupBenchGroup.add(pad);
 }
 
+function addBenchLabel(text, x0, x1, z) {
+  const W = 320, H = 52;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+  ctx.font = '600 24px "Segoe UI", Arial, sans-serif';
+  ctx.fillStyle = 'rgba(230,205,160,0.82)';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, W / 2, H / 2);
+  const tex = new THREE.CanvasTexture(canvas);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+  const s = new THREE.Sprite(mat);
+  s.scale.set((x1 - x0 + 0.08) * 1.05, 0.09, 1);
+  s.position.set((x0 + x1) / 2, 0.068 + 0.14, z);
+  setupBenchGroup.add(s);
+}
+
 function addSetupItem(mini, x, z, category, value, label, ringR) {
   const bY = 0.068;
   mini.position.set(x, bY + 0.05, z);
@@ -3406,44 +3446,51 @@ function buildSetupItems() {
   const ZF = 0.17;   // front row Z
   const ZB = -0.17;  // back row Z
 
-  // ── FRONT ROW: hideout · food · done ──
+  // ── FRONT ROW: hideout · food · cage colour · done ──
   // Hideout (4 items, brown base)
   addCategoryBase(-2.10, -0.45, ZF, 0xa07848);
+  addBenchLabel('hideout', -2.10, -0.45, ZF);
   addSetupItem(makeMiniNone(),               -2.00, ZF, 'hideout', null,        'no hideout',  0.09);
   addSetupItem(makeMiniHideout('house'),     -1.50, ZF, 'hideout', 'house',     'wooden house',0.10);
   addSetupItem(makeMiniHideout('igloo'),     -1.00, ZF, 'hideout', 'igloo',     'clay igloo',  0.10);
   addSetupItem(makeMiniHideout('logtunnel'),-0.55, ZF, 'hideout', 'logtunnel', 'log tunnel',  0.10);
 
   // Food (3 items, green base)
-  addCategoryBase(-0.20, 0.78, ZF, 0x78a860);
+  addCategoryBase(-0.22, 0.64, ZF, 0x78a860);
+  addBenchLabel('food', -0.22, 0.64, ZF);
   addSetupItem(makeMiniFood('seed'),  -0.12, ZF, 'food', 'seed',   'seed mix', 0.08);
   addSetupItem(makeMiniFood('pellet'), 0.22, ZF, 'food', 'pellet', 'pellets',  0.08);
   addSetupItem(makeMiniFood('veggie'), 0.56, ZF, 'food', 'veggie', 'veggies',  0.08);
 
   // Cage color (4 swatches)
-  addCategoryBase(0.80, 1.22, ZF, 0xa07848);
+  addCategoryBase(0.82, 1.92, ZF, 0xa07848);
+  addBenchLabel('cage colour', 0.82, 1.92, ZF);
   CAGE_COLORS.forEach((c, i) =>
-    addSetupItem(makeMiniSwatch(c.cab), 0.90 + i * 0.30, ZF, 'cagecolor', i, c.label, 0.07));
+    addSetupItem(makeMiniSwatch(c.cab), 0.92 + i * 0.30, ZF, 'cagecolor', i, c.label, 0.07));
 
   // ── BACK ROW: bedding · water · sand · extras ──
   // Bedding (3 swatches, cream base)
   addCategoryBase(-2.10, -0.75, ZB, 0xd8c8b0);
+  addBenchLabel('bedding', -2.10, -0.75, ZB);
   BEDDING_THEMES.forEach((t, i) =>
     addSetupItem(makeMiniSwatch(t.base), -2.00 + i * 0.35, ZB, 'bedding', i, t.label, 0.07));
 
   // Water (3 items, blue base)
   addCategoryBase(-0.60, 0.28, ZB, 0x88b8d0);
+  addBenchLabel('water', -0.60, 0.28, ZB);
   addSetupItem(makeMiniWater('bottle'), -0.50, ZB, 'water', 'bottle', 'bottle',        0.07);
   addSetupItem(makeMiniWater('corner'), -0.18, ZB, 'water', 'corner', 'corner sipper', 0.07);
   addSetupItem(makeMiniWater('dish'),    0.16, ZB, 'water', 'dish',   'water dish',    0.07);
 
   // Sand bath (2 items)
-  addCategoryBase(0.38, 0.60, ZB, 0xd0c090);
+  addCategoryBase(0.38, 0.96, ZB, 0xd0c090);
+  addBenchLabel('sand bath', 0.38, 0.96, ZB);
   addSetupItem(makeMiniNone(),            0.48, ZB, 'sand', null,      'no sand bath', 0.07);
   addSetupItem(makeMiniSand('natural'),   0.78, ZB, 'sand', 'natural', 'natural sand', 0.08);
 
   // Extras (2 items, sage base)
   addCategoryBase(1.60, 2.10, ZB, 0x90a880);
+  addBenchLabel('extras', 1.60, 2.10, ZB);
   addSetupItem(makeMiniWheel(), 1.70, ZB, 'wheel',  'toggle', 'running wheel', 0.09);
   addSetupItem(makeMiniNone(),  2.00, ZB, 'branch', 'toggle', 'climbing log',  0.09);
 
