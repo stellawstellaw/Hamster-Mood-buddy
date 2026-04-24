@@ -899,7 +899,7 @@
 
     <div class="tut-step" data-step="2">
       <div class="tut-step-title">care items</div>
-      <div class="tut-step-body">There are items scattered around the room — a treat jar, bedding bag, cleaning cloth, music box, and sketchbook. Pick one up with <em>[E]</em>, carry it to the cage, and press <em>[E]</em> again to use it.<br><br>Each care item gives your hamster a little trust boost. They reset every day.</div>
+      <div class="tut-step-body">All five care items sit on a small wooden shelf on the left side of the room — a treat jar, bedding bag, cleaning cloth, music box, and sketchbook. Pick one up with <em>[E]</em>, carry it to the cage, and press <em>[E]</em> again to use it.<br><br>Each care item gives your hamster a little trust boost. They reset every day.</div>
       <div class="tut-keys">
         <div class="tut-key">Q<span>whistle near cage (+1 trust)</span></div>
       </div>
@@ -959,11 +959,11 @@
       <div>
         <div class="guide-section-title">care items — pick up and bring to cage</div>
         <div class="guide-item-row">
-          <div class="guide-item"><span class="guide-item-name">treat jar</span><span class="guide-item-note">near the cage · +3 trust</span></div>
-          <div class="guide-item"><span class="guide-item-name">bedding bag</span><span class="guide-item-note">left back wall · +2 trust</span></div>
-          <div class="guide-item"><span class="guide-item-name">cleaning cloth</span><span class="guide-item-note">cage front floor · +2 trust</span></div>
-          <div class="guide-item"><span class="guide-item-name">music box</span><span class="guide-item-note">left-center floor · +2 trust</span></div>
-          <div class="guide-item"><span class="guide-item-name">sketchbook</span><span class="guide-item-note">far left wall · +2 trust</span></div>
+          <div class="guide-item"><span class="guide-item-name">treat jar</span><span class="guide-item-note">care shelf · +3 trust</span></div>
+          <div class="guide-item"><span class="guide-item-name">bedding bag</span><span class="guide-item-note">care shelf · +2 trust</span></div>
+          <div class="guide-item"><span class="guide-item-name">cleaning cloth</span><span class="guide-item-note">care shelf · +2 trust</span></div>
+          <div class="guide-item"><span class="guide-item-name">music box</span><span class="guide-item-note">care shelf · +2 trust</span></div>
+          <div class="guide-item"><span class="guide-item-name">sketchbook</span><span class="guide-item-note">care shelf · +2 trust</span></div>
         </div>
         <div class="guide-desc" style="margin-top:0.55rem">Press <em>[E]</em> to pick up an item. Carry it to the cage and press <em>[E]</em> again to use it. Each item resets at midnight.</div>
       </div>
@@ -3288,19 +3288,53 @@ function makeMiniHideout(type) {
   const g = new THREE.Group();
   if (type === 'house') {
     const wm = new THREE.MeshStandardMaterial({ color: 0xb88850, roughness: 0.88 });
+    const rm = new THREE.MeshStandardMaterial({ color: 0x9a6830, roughness: 0.90 });
+    const dm = new THREE.MeshStandardMaterial({ color: 0x5a3010, roughness: 0.95 });
+    // House body
     g.add(new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.10, 0.12), wm));
+    // Roof panels
     for (const sx of [-1, 1]) {
-      const p = new THREE.Mesh(new THREE.BoxGeometry(0.080, 0.007, 0.14),
-        new THREE.MeshStandardMaterial({ color: 0x9a6830, roughness: 0.9 }));
+      const p = new THREE.Mesh(new THREE.BoxGeometry(0.082, 0.007, 0.14), rm);
       p.position.set(sx * 0.037, 0.065, 0); p.rotation.z = sx * 0.52; g.add(p);
     }
+    // Door
+    const door = new THREE.Mesh(new THREE.BoxGeometry(0.030, 0.042, 0.005), dm);
+    door.position.set(0, -0.029, 0.062); g.add(door);
+    // Chimney
+    const ch = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.038, 0.018), rm);
+    ch.position.set(0.028, 0.085, 0); g.add(ch);
   } else if (type === 'igloo') {
     const cm = new THREE.MeshStandardMaterial({ color: 0xece8e2, roughness: 0.6 });
+    const dm = new THREE.MeshStandardMaterial({ color: 0xb0aba2, roughness: 0.7 });
     g.add(new THREE.Mesh(new THREE.SphereGeometry(0.085, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.58), cm));
+    // Entrance tunnel
+    const tun = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.045, 10, 1, true), dm);
+    tun.rotation.x = Math.PI / 2; tun.position.set(0, 0.015, 0.090); g.add(tun);
+    // Block ring around entrance
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.027, 0.007, 5, 10, Math.PI), dm);
+    ring.position.set(0, 0.028, 0.113); ring.rotation.x = Math.PI / 2; g.add(ring);
+    // Subtle block lines
+    for (const lat of [0.25, 0.50]) {
+      const r = Math.sin(lat * Math.PI * 0.58) * 0.086;
+      const y = (1 - Math.cos(lat * Math.PI * 0.58)) * 0.086 * 0.58;
+      g.add(new THREE.Mesh(new THREE.TorusGeometry(r, 0.003, 4, 14), dm)).position.y = y;
+    }
   } else if (type === 'logtunnel') {
-    const lm = new THREE.MeshStandardMaterial({ color: 0x8a5830, roughness: 0.95 });
-    const log = new THREE.Mesh(new THREE.CylinderGeometry(0.060, 0.068, 0.16, 9), lm);
+    const lm = new THREE.MeshStandardMaterial({ color: 0x7a4e28, roughness: 0.95 });
+    const dm = new THREE.MeshStandardMaterial({ color: 0x2e1608, roughness: 1.0 });
+    const bm = new THREE.MeshStandardMaterial({ color: 0x5a3a18, roughness: 1.0 });
+    const log = new THREE.Mesh(new THREE.CylinderGeometry(0.060, 0.068, 0.17, 10), lm);
     log.rotation.z = Math.PI / 2; g.add(log);
+    // Hollow ends
+    for (const px of [-0.086, 0.086]) {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.044, 0.012, 6, 12), bm);
+      ring.rotation.y = Math.PI / 2; ring.position.x = px; g.add(ring);
+    }
+    // Bark lines
+    for (const dz of [-0.025, 0.025]) {
+      const mark = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.004, 0.007), bm);
+      mark.position.set(0, 0.045 + dz * 0.6, dz); g.add(mark);
+    }
   } else {
     makeMiniNoneInto(g);
   }
@@ -4024,11 +4058,11 @@ let lookingAtEnclosure = false;
 // ════════════════════════════════════════════════════════
 
 const CARE_DEFS = [
-  { id: 'treats',   label: 'treat jar',      cagePrompt: h => `give treats to ${h}`,   trustGain: 3, pos: [-3.2, 0.95, -3.4], fpPos: [0.26, -0.20, -0.40], fpScale: 4.0  },
-  { id: 'bedding',  label: 'bedding bag',     cagePrompt: () => 'change the bedding',   trustGain: 2, pos: [-5.6, 0.70,  2.6], fpPos: [0.22, -0.24, -0.48], fpScale: 0.14 },
-  { id: 'cleaner',  label: 'cleaning cloth',  cagePrompt: () => 'wipe the cage',        trustGain: 2, pos: [ 0.6, 0.08,  0.8], fpPos: [0.28, -0.18, -0.42], fpScale: 2.5  },
-  { id: 'musicbox', label: 'music box',       cagePrompt: () => 'play music for them',  trustGain: 2, pos: [-4.2, 0.08, -1.2], fpPos: [0.24, -0.22, -0.44], fpScale: 3.5  },
-  { id: 'sketch',   label: 'sketchbook',      cagePrompt: h => `show drawing to ${h}`,  trustGain: 2, pos: [-5.0, 0.05,  1.0], fpPos: [0.20, -0.26, -0.46], fpScale: 2.8  },
+  { id: 'treats',   label: 'treat jar',      cagePrompt: h => `give treats to ${h}`,   trustGain: 3, pos: [-3.2, 0.85, 2.0], fpPos: [0.26, -0.20, -0.40], fpScale: 4.0  },
+  { id: 'bedding',  label: 'bedding bag',     cagePrompt: () => 'change the bedding',   trustGain: 2, pos: [-3.8, 0.85, 2.0], fpPos: [0.22, -0.24, -0.48], fpScale: 0.80 },
+  { id: 'cleaner',  label: 'cleaning cloth',  cagePrompt: () => 'wipe the cage',        trustGain: 2, pos: [-4.4, 0.85, 2.0], fpPos: [0.28, -0.18, -0.42], fpScale: 2.5  },
+  { id: 'musicbox', label: 'music box',       cagePrompt: () => 'play music for them',  trustGain: 2, pos: [-5.0, 0.85, 2.0], fpPos: [0.24, -0.22, -0.44], fpScale: 3.5  },
+  { id: 'sketch',   label: 'sketchbook',      cagePrompt: h => `show drawing to ${h}`,  trustGain: 2, pos: [-5.6, 0.85, 2.0], fpPos: [0.20, -0.26, -0.46], fpScale: 2.8  },
 ];
 // Probability of successful hold attempt by trust stage
 function holdSuccessChance(trust) {
@@ -4043,115 +4077,175 @@ let heldItem     = null; // null | care def id
 let nearCareItem = null; // null | care def id (proximity)
 
 function buildCareItems() {
-  // Treat jar — small amber glass jar on side table
+  // Care shelf — small wooden side table against the left wall
+  {
+    const wm = new THREE.MeshStandardMaterial({ color: 0x9a6840, roughness: 0.82 });
+    const wlm = new THREE.MeshStandardMaterial({ color: 0xb88858, roughness: 0.78 });
+    // Table top
+    const top = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.055, 0.58), wlm);
+    top.position.set(-4.4, 0.83, 2.0); top.castShadow = true; top.receiveShadow = true;
+    scene.add(top);
+    // Shelf rail (front lip to stop items falling)
+    const lip = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.04, 0.025), wm);
+    lip.position.set(-4.4, 0.86, 2.27); scene.add(lip);
+    // Back panel
+    const back = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.55, 0.04), wm);
+    back.position.set(-4.4, 0.56, 1.74); scene.add(back);
+    // Four legs
+    for (const [lx, lz] of [[-2.85, 1.74], [-2.85, 2.26], [-5.95, 1.74], [-5.95, 2.26]]) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.82, 0.06), wm);
+      leg.position.set(lx, 0.41, lz); scene.add(leg);
+    }
+    // Obstacle so player can't walk through it
+    OBSTACLES.push({ x0: -5.95 + 0.20, x1: -2.85 - 0.20, z0: 1.74 + 0.20, z1: 2.26 - 0.20 });
+  }
+  // Treat jar — amber glass jar with label on shelf
   {
     const g = new THREE.Group();
-    const body = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.055, 0.050, 0.11, 14),
-      new THREE.MeshStandardMaterial({ color: 0xd4a030, roughness: 0.25, transparent: true, opacity: 0.72 })
-    );
-    const lid = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.062, 0.062, 0.022, 14),
-      new THREE.MeshStandardMaterial({ color: 0x9a6820, roughness: 0.55 })
-    );
-    lid.position.y = 0.066;
-    g.add(body); g.add(lid);
+    const glassMat = new THREE.MeshStandardMaterial({ color: 0xd4a030, roughness: 0.15, transparent: true, opacity: 0.75, metalness: 0.05 });
+    const lidMat   = new THREE.MeshStandardMaterial({ color: 0x7a5218, roughness: 0.50, metalness: 0.15 });
+    const labelMat = new THREE.MeshStandardMaterial({ color: 0xf5ead0, roughness: 0.90 });
+    // Jar body (slightly tapered)
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.044, 0.10, 16), glassMat);
+    g.add(body);
+    // Shoulder ring
+    const shoulder = new THREE.Mesh(new THREE.TorusGeometry(0.048, 0.005, 6, 16), glassMat);
+    shoulder.position.y = 0.048; g.add(shoulder);
+    // Metal lid with rim
+    const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.054, 0.054, 0.018, 16), lidMat);
+    lid.position.y = 0.060; g.add(lid);
+    const lidRim = new THREE.Mesh(new THREE.TorusGeometry(0.054, 0.003, 6, 16), lidMat);
+    lidRim.position.y = 0.068; g.add(lidRim);
+    // Paper label
+    const label = new THREE.Mesh(new THREE.CylinderGeometry(0.049, 0.045, 0.048, 16, 1, true, -1.2, 2.4), labelMat);
+    label.position.y = -0.005; g.add(label);
+    // Label decoration line
+    const deco = new THREE.Mesh(new THREE.CylinderGeometry(0.050, 0.046, 0.004, 16, 1, true, -1.2, 2.4),
+      new THREE.MeshStandardMaterial({ color: 0xd4a860, roughness: 0.7 }));
+    deco.position.y = 0.010; g.add(deco);
     g.position.set(...CARE_DEFS[0].pos);
     g.visible = false;
     scene.add(g);
     careMeshes.treats = g;
   }
-  // Bedding bag — big paper bag on floor near left wall
+  // Bedding bag — compact paper bag on shelf
   {
     const g = new THREE.Group();
-    const bag = new THREE.Mesh(
-      new THREE.BoxGeometry(1.10, 1.40, 0.76),
-      new THREE.MeshStandardMaterial({ color: 0xd8c49a, roughness: 0.95 })
-    );
-    const fold = new THREE.Mesh(
-      new THREE.BoxGeometry(1.10, 0.20, 0.76),
-      new THREE.MeshStandardMaterial({ color: 0xc2a87a, roughness: 0.95 })
-    );
-    fold.position.y = 0.80; fold.rotation.z = 0.06;
-    const strip = new THREE.Mesh(
-      new THREE.BoxGeometry(0.60, 0.20, 0.05),
-      new THREE.MeshStandardMaterial({ color: 0x8aaa70, roughness: 0.80 })
-    );
-    strip.position.set(0, 0.25, 0.40);
-    g.add(bag); g.add(fold); g.add(strip);
+    const bagMat = new THREE.MeshStandardMaterial({ color: 0xd8c49a, roughness: 0.95 });
+    const darkMat = new THREE.MeshStandardMaterial({ color: 0xb89870, roughness: 0.95 });
+    const accentMat = new THREE.MeshStandardMaterial({ color: 0x8aaa70, roughness: 0.80 });
+    // Main bag body
+    const bag = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.24, 0.12), bagMat);
+    g.add(bag);
+    // Folded top edge
+    const fold = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.032, 0.12), darkMat);
+    fold.position.y = 0.136; fold.rotation.z = 0.04; g.add(fold);
+    // Front label strip
+    const label = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.07, 0.005), accentMat);
+    label.position.set(0, 0.02, 0.062); g.add(label);
+    // Small text lines on label (thin boxes)
+    for (let i = 0; i < 3; i++) {
+      const line = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.006, 0.003),
+        new THREE.MeshStandardMaterial({ color: 0xf0ece0, roughness: 0.9 }));
+      line.position.set(0, 0.03 - i * 0.018, 0.064); g.add(line);
+    }
+    // Handle hole visual (two thin strips at top)
+    for (const sx of [-0.04, 0.04]) {
+      const hs = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.04, 0.004), darkMat);
+      hs.position.set(sx, 0.15, 0.062); g.add(hs);
+    }
     g.position.set(...CARE_DEFS[1].pos);
     g.visible = false;
     scene.add(g);
     careMeshes.bedding = g;
   }
-  // Cleaning cloth — rolled cloth on floor in front of cage area
+  // Cleaning cloth — rolled cloth with coloured stripes
   {
     const g = new THREE.Group();
+    const clothMat   = new THREE.MeshStandardMaterial({ color: 0xeee4d8, roughness: 0.82 });
+    const stripeMat1 = new THREE.MeshStandardMaterial({ color: 0x88b8d0, roughness: 0.78 });
+    const stripeMat2 = new THREE.MeshStandardMaterial({ color: 0xd08898, roughness: 0.78 });
+    const capMat     = new THREE.MeshStandardMaterial({ color: 0xd0c8b8, roughness: 0.85 });
     // Main roll (lying on side)
-    const roll = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.055, 0.055, 0.22, 12),
-      new THREE.MeshStandardMaterial({ color: 0xeee4d8, roughness: 0.82 })
-    );
-    roll.rotation.z = Math.PI / 2;
-    // End cap ring (makes it look like a wrapped cloth)
-    const cap = new THREE.Mesh(
-      new THREE.TorusGeometry(0.055, 0.010, 8, 16),
-      new THREE.MeshStandardMaterial({ color: 0xc8b8a0, roughness: 0.85 })
-    );
-    cap.position.x = 0.11;
-    g.add(roll); g.add(cap);
+    const roll = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.042, 0.20, 14), clothMat);
+    roll.rotation.z = Math.PI / 2; g.add(roll);
+    // Coloured stripes along the roll
+    for (const [ox, col] of [[-0.04, stripeMat1], [0.04, stripeMat2]]) {
+      const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.043, 0.043, 0.022, 14, 1, true), col);
+      stripe.rotation.z = Math.PI / 2; stripe.position.x = ox; g.add(stripe);
+    }
+    // End caps
+    for (const ox of [-0.102, 0.102]) {
+      const cap = new THREE.Mesh(new THREE.CircleGeometry(0.042, 14), capMat);
+      cap.rotation.y = Math.PI / 2; cap.position.x = ox; g.add(cap);
+    }
     g.position.set(...CARE_DEFS[2].pos);
     g.visible = false;
     scene.add(g);
     careMeshes.cleaner = g;
   }
-  // Music box — small wooden box with a tiny crank
+  // Music box — ornate wooden box with brass details
   {
     const g = new THREE.Group();
-    const box = new THREE.Mesh(
-      new THREE.BoxGeometry(0.13, 0.08, 0.10),
-      new THREE.MeshStandardMaterial({ color: 0xa06830, roughness: 0.70 })
-    );
-    const lid = new THREE.Mesh(
-      new THREE.BoxGeometry(0.13, 0.012, 0.10),
-      new THREE.MeshStandardMaterial({ color: 0xb87840, roughness: 0.55 })
-    );
-    lid.position.y = 0.046;
-    const inlay = new THREE.Mesh(
-      new THREE.BoxGeometry(0.08, 0.004, 0.06),
-      new THREE.MeshStandardMaterial({ color: 0xd4a860, roughness: 0.40 })
-    );
-    inlay.position.y = 0.053;
-    const crank = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.006, 0.006, 0.05, 6),
-      new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.45, metalness: 0.5 })
-    );
-    crank.rotation.z = Math.PI / 2;
-    crank.position.set(0.075, 0.01, 0);
-    g.add(box); g.add(lid); g.add(inlay); g.add(crank);
+    const woodMat  = new THREE.MeshStandardMaterial({ color: 0x8a5828, roughness: 0.65 });
+    const lidMat   = new THREE.MeshStandardMaterial({ color: 0xa06830, roughness: 0.55 });
+    const brassMat = new THREE.MeshStandardMaterial({ color: 0xc8a040, roughness: 0.35, metalness: 0.45 });
+    const inlayMat = new THREE.MeshStandardMaterial({ color: 0xd4b060, roughness: 0.40 });
+    // Box body
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.075, 0.10), woodMat));
+    // Lid (sits on top)
+    const lid = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.010, 0.10), lidMat);
+    lid.position.y = 0.043; g.add(lid);
+    // Inlay diamond on lid
+    const inlay = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.004, 0.052), inlayMat);
+    inlay.rotation.y = Math.PI / 4; inlay.position.y = 0.050; g.add(inlay);
+    // Brass corner dots
+    for (const [cx, cz] of [[-0.055, -0.040], [0.055, -0.040], [-0.055, 0.040], [0.055, 0.040]]) {
+      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.006, 6, 5), brassMat);
+      dot.position.set(cx, 0.050, cz); g.add(dot);
+    }
+    // Side crank
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.028, 7), brassMat);
+    shaft.rotation.z = Math.PI / 2; shaft.position.set(0.072, 0.005, 0); g.add(shaft);
+    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.007, 7, 6), brassMat);
+    knob.position.set(0.086, 0.005, 0); g.add(knob);
+    // Tiny hinge on back
+    const hinge = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.035, 7), brassMat);
+    hinge.rotation.x = Math.PI / 2; hinge.position.set(0, 0.038, -0.051); g.add(hinge);
     g.position.set(...CARE_DEFS[3].pos);
     g.visible = false;
     scene.add(g);
     careMeshes.musicbox = g;
   }
-  // Sketchbook — small flat notebook lying on the floor
+  // Sketchbook — small notebook with pencil resting on top
   {
     const g = new THREE.Group();
-    const cover = new THREE.Mesh(
-      new THREE.BoxGeometry(0.18, 0.015, 0.14),
-      new THREE.MeshStandardMaterial({ color: 0x7a9070, roughness: 0.85 })
-    );
-    const pages = new THREE.Mesh(
-      new THREE.BoxGeometry(0.165, 0.010, 0.125),
-      new THREE.MeshStandardMaterial({ color: 0xf0ece4, roughness: 0.95 })
-    );
-    pages.position.y = 0.012;
-    const spine = new THREE.Mesh(
-      new THREE.BoxGeometry(0.018, 0.016, 0.14),
-      new THREE.MeshStandardMaterial({ color: 0x5a6e52, roughness: 0.80 })
-    );
-    spine.position.x = -0.09;
-    g.add(cover); g.add(pages); g.add(spine);
+    const coverMat = new THREE.MeshStandardMaterial({ color: 0x607858, roughness: 0.85 });
+    const pagesMat = new THREE.MeshStandardMaterial({ color: 0xf4f0e8, roughness: 0.95 });
+    const spineMat = new THREE.MeshStandardMaterial({ color: 0x485840, roughness: 0.80 });
+    // Cover
+    const cover = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.014, 0.13), coverMat);
+    g.add(cover);
+    // Page stack (slightly inset from cover)
+    const pages = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.010, 0.115), pagesMat);
+    pages.position.y = 0.012; g.add(pages);
+    // Page edge lines (3 thin layers for realism)
+    for (let i = 0; i < 3; i++) {
+      const layer = new THREE.Mesh(new THREE.BoxGeometry(0.149, 0.002, 0.114),
+        new THREE.MeshStandardMaterial({ color: 0xe8e4dc, roughness: 0.95 }));
+      layer.position.y = 0.009 + i * 0.003; g.add(layer);
+    }
+    // Spine
+    const spine = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.016, 0.13), spineMat);
+    spine.position.x = -0.085; g.add(spine);
+    // Pencil resting diagonally on top
+    const pencilMat = new THREE.MeshStandardMaterial({ color: 0xe8c840, roughness: 0.75 });
+    const tipMat    = new THREE.MeshStandardMaterial({ color: 0xd47030, roughness: 0.9 });
+    const pencil = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.14, 6), pencilMat);
+    pencil.rotation.z = Math.PI / 2; pencil.rotation.y = 0.25;
+    pencil.position.set(0.01, 0.022, 0.01); g.add(pencil);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.005, 0.012, 6), tipMat);
+    tip.rotation.z = Math.PI / 2; tip.position.set(0.082, 0.022, 0.035); g.add(tip);
     g.position.set(...CARE_DEFS[4].pos);
     g.visible = false;
     scene.add(g);
@@ -4255,11 +4349,13 @@ function checkCareInteraction() {
   // Check proximity to each item on the floor
   let foundItem = null;
   if (!heldItem) {
+    let foundDist = 1.4;
     for (const def of CARE_DEFS) {
       const m = careMeshes[def.id];
       if (!m || !m.visible) continue;
       const dx = px - def.pos[0], dz = pz - def.pos[2];
-      if (Math.sqrt(dx*dx + dz*dz) < 1.4) { foundItem = def.id; break; }
+      const dist = Math.sqrt(dx*dx + dz*dz);
+      if (dist < foundDist) { foundDist = dist; foundItem = def.id; }
     }
   }
 
