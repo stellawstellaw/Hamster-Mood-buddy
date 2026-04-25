@@ -2756,25 +2756,79 @@ let wheelSpinner = null;  // spinning sub-group of wheel
 function addWheel() {
   if (accMeshes.wheel) return;
   const g = new THREE.Group();
-  const wm = new THREE.MeshStandardMaterial({ color: 0xa87840, roughness: 0.85 });
-  const sm = new THREE.MeshStandardMaterial({ color: 0xd4c0a0, roughness: 0.92, side: THREE.DoubleSide });
+
+  const R  = 0.168;  // outer radius
+  const AW = 0.130;  // axle width (depth)
+  const rimMat   = new THREE.MeshStandardMaterial({ color: 0xc8aa72, roughness: 0.55 });
+  const barMat   = new THREE.MeshStandardMaterial({ color: 0xa88e60, roughness: 0.72 });
+  const spokeMat = new THREE.MeshStandardMaterial({ color: 0xb89a68, roughness: 0.62 });
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x8a6c44, roughness: 0.68, metalness: 0.06 });
+  const axleMat  = new THREE.MeshStandardMaterial({ color: 0x706048, roughness: 0.45, metalness: 0.35 });
+
   wheelSpinner = new THREE.Group();
-  wheelSpinner.add(new THREE.Mesh(new THREE.TorusGeometry(0.155, 0.013, 7, 22), wm));
-  const surf = new THREE.Mesh(new THREE.CylinderGeometry(0.155, 0.155, 0.10, 22, 1, true), sm);
-  surf.rotation.x = Math.PI / 2;
-  wheelSpinner.add(surf);
-  for (let i = 0; i < 5; i++) {
-    const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.30, 5), wm);
-    sp.rotation.z = i * Math.PI / 5;
-    wheelSpinner.add(sp);
+
+  // Two outer rim rings (front and back faces of wheel)
+  const rimGeom = new THREE.TorusGeometry(R, 0.013, 8, 28);
+  wheelSpinner.add(new THREE.Mesh(rimGeom, rimMat));
+  const rimBack = new THREE.Mesh(rimGeom, rimMat);
+  rimBack.position.z = AW;
+  wheelSpinner.add(rimBack);
+
+  // Running bars — parallel rods along Z axis, arranged around the perimeter
+  const numBars = 22;
+  for (let i = 0; i < numBars; i++) {
+    const a = (i / numBars) * Math.PI * 2;
+    const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.0045, 0.0045, AW, 6), barMat);
+    bar.position.set(Math.cos(a) * (R - 0.007), Math.sin(a) * (R - 0.007), AW / 2);
+    bar.rotation.x = Math.PI / 2;
+    wheelSpinner.add(bar);
   }
+
+  // Spokes — 8 radial spokes on front and back face
+  const numSpokes = 8;
+  const spokeLen = R - 0.026 - 0.013;
+  for (let i = 0; i < numSpokes; i++) {
+    const a = (i / numSpokes) * Math.PI * 2;
+    const cx = Math.cos(a), cy = Math.sin(a);
+    for (const sz of [0.008, AW - 0.008]) {
+      const sp = new THREE.Mesh(new THREE.BoxGeometry(spokeLen, 0.007, 0.007), spokeMat);
+      sp.position.set(cx * (0.026 + spokeLen / 2), cy * (0.026 + spokeLen / 2), sz);
+      sp.rotation.z = a;
+      wheelSpinner.add(sp);
+    }
+  }
+
+  // Center hub (cylinder along Z)
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, AW + 0.006, 10), rimMat);
+  hub.rotation.x = Math.PI / 2;
+  hub.position.z = AW / 2;
+  wheelSpinner.add(hub);
+
   g.add(wheelSpinner);
-  for (const sx of [-0.10, 0.10]) {
-    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.20, 0.018), wm);
-    leg.position.set(sx, -0.08, 0);  g.add(leg);
+
+  // Axle — thin rod through center extending to the frame
+  const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, AW + 0.20, 8), axleMat);
+  axle.rotation.x = Math.PI / 2;
+  axle.position.z = AW / 2;
+  g.add(axle);
+
+  // Two frame legs — one on each side of wheel along Z
+  for (const lz of [-0.075, AW + 0.075]) {
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.013, 0.295, 8), frameMat);
+    post.position.set(0, -0.010, lz);
+    g.add(post);
+    // Small foot angled outward
+    const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.010, 0.010, 0.070, 8), frameMat);
+    foot.rotation.x = Math.PI / 2;
+    foot.position.set(0, -0.152, lz + (lz < 0 ? -0.018 : 0.018));
+    g.add(foot);
   }
-  const base = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.014, 0.07), wm);
-  base.position.y = -0.174;  g.add(base);
+  // Base bar connecting both feet
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, AW + 0.20, 8), frameMat);
+  base.rotation.x = Math.PI / 2;
+  base.position.set(0, -0.152, AW / 2);
+  g.add(base);
+
   g.position.set(ENC.x - 0.75, HAM_FLOOR + 0.175, ENC.z - 0.25);
   g.rotation.y = 0.3;
   cageRoot.add(g);  accMeshes.wheel = g;
@@ -2994,6 +3048,7 @@ function addSandBath(type = 'natural') {
   const g = new THREE.Group();
   const palette = {
     natural: { dish: 0xd0ccc4, sand: 0xe8e0b8, grain: 0xd4cc9c },
+    crystal: { dish: 0xc8d8e8, sand: 0xe4f0f8, grain: 0xd0e8f4 },
     pink:    { dish: 0xecc0c8, sand: 0xf8dce4, grain: 0xf0c4d0 },
     blue:    { dish: 0xb8cce0, sand: 0xd0e4f0, grain: 0xb8d4e8 },
   }[type] || { dish: 0xd0ccc4, sand: 0xe8e0b8, grain: 0xd4cc9c };
@@ -3211,7 +3266,7 @@ function updateStoryBox(dt, t) {
 const setupChoices = {
   hamIdx: 0, bedding: 0,
   hideout: 'house', food: 'seed', water: 'bottle',
-  sandbath: null, wheel: false, branch: false,
+  sandbath: 'natural', wheel: true, branch: false,
   cageColor: 0,
 };
 
@@ -3380,7 +3435,7 @@ function makeMiniWater(type) {
 
 function makeMiniSand(type) {
   const g = new THREE.Group();
-  const cols = { natural: { d: 0xd0ccc4, s: 0xe8e0b8 }, pink: { d: 0xecc0c8, s: 0xf8dce4 }, blue: { d: 0xb8cce0, s: 0xd0e4f0 } };
+  const cols = { natural: { d: 0xd0ccc4, s: 0xe8e0b8 }, crystal: { d: 0xc8d8e8, s: 0xe4f0f8 }, pink: { d: 0xecc0c8, s: 0xf8dce4 }, blue: { d: 0xb8cce0, s: 0xd0e4f0 } };
   const pal = cols[type] || cols.natural;
   g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.024, 14),
     new THREE.MeshStandardMaterial({ color: pal.d, roughness: 0.72 })));
@@ -3516,17 +3571,16 @@ function buildSetupItems() {
   addSetupItem(makeMiniWater('corner'), -0.18, ZB, 'water', 'corner', 'corner sipper', 0.07);
   addSetupItem(makeMiniWater('dish'),    0.16, ZB, 'water', 'dish',   'water dish',    0.07);
 
-  // Sand bath (2 items)
-  addCategoryBase(0.38, 0.96, ZB, 0xd0c090);
-  addBenchLabel('sand bath', 0.38, 0.96, ZB);
-  addSetupItem(makeMiniNone(),            0.48, ZB, 'sand', null,      'no sand bath', 0.07);
-  addSetupItem(makeMiniSand('natural'),   0.78, ZB, 'sand', 'natural', 'natural sand', 0.08);
+  // Sand bath (sand type choice — always included)
+  addCategoryBase(0.38, 1.08, ZB, 0xd0c090);
+  addBenchLabel('sand bath', 0.38, 1.08, ZB);
+  addSetupItem(makeMiniSand('natural'),   0.55, ZB, 'sand', 'natural', 'natural sand',    0.08);
+  addSetupItem(makeMiniSand('crystal'),   0.88, ZB, 'sand', 'crystal', 'crystal sand',    0.08);
 
-  // Extras (2 items, sage base)
-  addCategoryBase(1.60, 2.10, ZB, 0x90a880);
-  addBenchLabel('extras', 1.60, 2.10, ZB);
-  addSetupItem(makeMiniWheel(), 1.70, ZB, 'wheel',  'toggle', 'running wheel', 0.09);
-  addSetupItem(makeMiniNone(),  2.00, ZB, 'branch', 'toggle', 'climbing log',  0.09);
+  // Extras (branch only — wheel always included)
+  addCategoryBase(1.30, 1.80, ZB, 0x90a880);
+  addBenchLabel('extras', 1.30, 1.80, ZB);
+  addSetupItem(makeMiniNone(),  1.52, ZB, 'branch', 'toggle', 'climbing log', 0.09);
 
   // Done sign (front right)
   buildDoneMarker();
@@ -3594,10 +3648,11 @@ function startSetup() {
   highlightSetupSelection('hideout', 'house');
   highlightSetupSelection('food', 'seed');
   highlightSetupSelection('water', 'bottle');
-  highlightSetupSelection('sand', null);
-  // Apply defaults into scene
+  highlightSetupSelection('sand', 'natural');
+  // Apply defaults into scene (wheel + sand bath are always included)
   applyBeddingTheme(BEDDING_THEMES[0]);
   addWoodenHouse(); addFoodBowl('seed'); addWaterContainer('bottle');
+  addWheel(); addSandBath('natural');
 
   showSetupCat('set up their home');
   setCaption('walk up to the table  \u00b7  look at items and press [E] to choose', 500);
@@ -3608,7 +3663,7 @@ function applyDefaultCageAndName() {
   setupChoices.hideout  = 'house';
   setupChoices.food     = 'seed';
   setupChoices.water    = 'bottle';
-  setupChoices.sandbath = null;
+  setupChoices.sandbath = 'natural';
   setupChoices.wheel    = true;
   setupChoices.branch   = false;
   setupChoices.hamIdx   = 0;
@@ -3619,6 +3674,7 @@ function applyDefaultCageAndName() {
   addFoodBowl('seed');
   addWaterContainer('bottle');
   addWheel();
+  addSandBath('natural');
 
   openNamingScreen();
 }
@@ -4529,20 +4585,15 @@ function tryHoldHamster() {
   if (Math.random() < chance) {
     doHoldHamster();
   } else {
-    // Hamster refuses — flinch and show immediate feedback in interact prompt
+    // Hamster refuses — flinch and show feedback via caption (interactPrompt is overwritten every frame)
     startBehavior(B.HIDE);
     const msg = hamState.trust < 26
-      ? `${name} darts away...`
+      ? `${name} darts away! they need more time...`
       : hamState.trust < 51
-        ? `${name} isn't sure yet ♡`
-        : `${name} wriggles free ♡`;
-    interactPrompt.textContent = msg;
-    interactPrompt.classList.add('visible');
-    setTimeout(() => {
-      interactPrompt.textContent = getCareItemsUsedToday().includes('hold')
-        ? `${name}'s home  ·  [T] talk to them`
-        : `[E] gently hold ${name}  ·  [T] talk to them`;
-    }, 1800);
+        ? `${name} hesitates... not quite ready yet`
+        : `${name} wriggles free  ♡`;
+    setCaption(msg, 80);
+    setTimeout(() => clearCaption(), 2200);
   }
 }
 
@@ -5373,7 +5424,7 @@ function restoreCageSetup(choices) {
   // sandbath was saved as "sandbath" key, also check legacy "sand"
   const sand = choices.sandbath || choices.sand;
   if (sand) addSandBath(sand);
-  if (choices.wheel) addWheel();
+  addWheel();  // wheel is now always required
   if (choices.branch) addBranch();
 }
 
