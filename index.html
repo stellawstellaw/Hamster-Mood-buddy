@@ -5330,7 +5330,8 @@ function selectProfile(id) {
     if (col && pat && siz) applyHamsterAppearance(col, pat, siz);
 
     // Restore cage setup
-    if (prof.setupChoices) restoreCageSetup(prof.setupChoices);
+    try { if (prof.setupChoices) restoreCageSetup(prof.setupChoices); }
+    catch (e) { console.warn('restoreCageSetup failed, using defaults:', e); applyBeddingTheme(BEDDING_THEMES[0]); }
 
     // Restore trust
     hamState.trust = prof.trust || 0;
@@ -5360,14 +5361,18 @@ function selectProfile(id) {
 
 function restoreCageSetup(choices) {
   cageRoot.visible = true;
-  applyBeddingTheme(BEDDING_THEMES[choices.bedding ?? 0]);
-  applyCageColor(choices.cageColor ?? 0);
-  if (choices.hideout === 'house')     addWoodenHouse();
-  else if (choices.hideout === 'igloo') addCeramicIgloo();
+  const bIdx = Math.min(choices.bedding ?? 0, BEDDING_THEMES.length - 1);
+  applyBeddingTheme(BEDDING_THEMES[bIdx] ?? BEDDING_THEMES[0]);
+  const cIdx = Math.min(choices.cageColor ?? 0, CAGE_COLORS.length - 1);
+  applyCageColor(cIdx);
+  if (choices.hideout === 'house')         addWoodenHouse();
+  else if (choices.hideout === 'igloo')     addCeramicIgloo();
   else if (choices.hideout === 'logtunnel') addLogTunnel();
   if (choices.food)  addFoodBowl(choices.food);
   if (choices.water) addWaterContainer(choices.water);
-  if (choices.sand)  addSandBath(choices.sand);
+  // sandbath was saved as "sandbath" key, also check legacy "sand"
+  const sand = choices.sandbath || choices.sand;
+  if (sand) addSandBath(sand);
   if (choices.wheel) addWheel();
   if (choices.branch) addBranch();
 }
